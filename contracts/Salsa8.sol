@@ -1,4 +1,4 @@
-pragma solidity ^0.4.13;
+pragma solidity ^0.4.15;
 
 library Salsa8 {
     uint constant m0 = 0x100000000000000000000000000000000000000000000000000000000;
