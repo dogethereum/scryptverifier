@@ -17,6 +17,7 @@ contract ScryptTest {
     int public lastStep = - 1;
 
     bytes public salt;
+    bytes public input2;
     bytes32[4] public pbkdf2;
 
     function ScryptTest() {
@@ -33,13 +34,11 @@ contract ScryptTest {
         Round memory r;
         Round memory s;
         //uint256[4] memory res;
-        uint f;
-        uint idx;
+        //uint f;
+        //uint idx;
         //uint256[4] memory res2;
 
-        uint[4] memory foo;
-        uint[4] memory bar;
-
+        bytes memory _input;
         bytes memory _salt;
 
         if (step == 0) {
@@ -54,22 +53,24 @@ contract ScryptTest {
             _round = Salsa8.round(r.result);
             //h = sha3(_round[0], _round[1], _round[2], _round[3]);
         } else if (step <= 2048) {
+            uint[4] memory bar;
             r = rounds[step - 1];
             if (!r.exists) {
                 return false;
             }
             bar = r.result;
-            f = r.result[2];
-            idx = (f / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
+            uint idx = r.result[2];
+            idx = (idx / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
             s = rounds[int(idx)];
             if (!s.exists) {
                 return false;
             }
-            foo = s.result;
-            bar[0] = bar[0] ^ foo[0];
-            bar[1] = bar[1] ^ foo[1];
-            bar[2] = bar[2] ^ foo[2];
-            bar[3] = bar[3] ^ foo[3];
+            //uint[4] memory foo;
+            //foo = s.result;
+            bar[0] = bar[0] ^ s.result[0];
+            bar[1] = bar[1] ^ s.result[1];
+            bar[2] = bar[2] ^ s.result[2];
+            bar[3] = bar[3] ^ s.result[3];
             _round = Salsa8.round(bar);
             //h = sha3(_round[0], _round[1], _round[2], _round[3]);
         } else if (step == 2049) {
@@ -79,9 +80,14 @@ contract ScryptTest {
             }
             _salt = concatenate(r.result);
             salt = _salt;
-            _pbkdf = KeyDeriv.pbkdf2(input, _salt, 32);
+            //_input = b32dec(input);
+            _input = input;
+            input2 =  _input;
+            _pbkdf = KeyDeriv.pbkdf2(_input, _salt, 32);
             pbkdf2 = _pbkdf;
-            _round = b32enc(_pbkdf);
+            for (uint i=0; i<4; ++i) {
+              _round[i] = uint(_pbkdf[i]); // b32enc(_pbkdf);
+            }
         } else {
             return false;
         }
@@ -114,8 +120,11 @@ contract ScryptTest {
     function concatenate(uint[4] _input) internal returns (bytes res) {
       res = new bytes(4*32);
       for (uint i=0; i<4; ++i) {
-        for (uint j=0; j<32; ++j) {
-          res[i*32 + j] = byte(bytes32(_input[i])[j]);
+        for (uint j=0; j<32; j+=4) {
+          res[i*32 + j + 0] = byte(bytes32(_input[i])[j + 3]);
+          res[i*32 + j + 1] = byte(bytes32(_input[i])[j + 2]);
+          res[i*32 + j + 2] = byte(bytes32(_input[i])[j + 1]);
+          res[i*32 + j + 3] = byte(bytes32(_input[i])[j + 0]);
         }
       }
     }
@@ -147,6 +156,16 @@ contract ScryptTest {
     function b32enc(bytes32[4] abraka) internal returns (uint[4] dabra) {
         for (uint i=0; i<4; ++i) {
             dabra[i] = b32enc256(uint(abraka[i]));
+        }
+    }
+
+    function b32dec(bytes inp) internal returns (bytes out) {
+        out = new bytes(inp.length);
+        for (uint i=0; i<inp.length; i += 4) {
+          out[i + 0] = inp[i + 3];
+          out[i + 1] = inp[i + 2];
+          out[i + 2] = inp[i + 1];
+          out[i + 3] = inp[i + 0];
         }
     }
 }

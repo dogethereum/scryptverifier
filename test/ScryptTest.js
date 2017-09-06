@@ -232,18 +232,21 @@ contract('ScryptTest', function(accounts) {
         console.log(`resl ${i}: ${r.toString(16)}`);
         console.log(`hash ${i}: ${h.toString(16)}`);
 
-        i++;
+        i++; // 2049
         sr = await scryptTest.run(i);
 
-        console.log(`----step ${i}: ${sr.tx}`); // 2049
-        [, r, , r2, , h] = await scryptTest.get.call(i);
+        console.log(`----step ${i}: ${sr.tx}`);
+        const [, rr0, rr1, rr2, rr3, rh] = await scryptTest.get.call(i);
         const [input2, salt, pbkdf2] = await Promise.all([
-          scryptTest.input.call(),
+          scryptTest.input2.call(),
           scryptTest.salt.call(),
           scryptTest.pbkdf2.call(0)
         ]);
-        console.log(`resl ${i}: ${r.toString(16)}`);
-        console.log(`hash ${i}: ${h.toString(16)}`);
+        console.log(`resl ${i}: ${rr0.toString(16)}`);
+        console.log(`resl ${i}: ${rr1.toString(16)}`);
+        console.log(`resl ${i}: ${rr2.toString(16)}`);
+        console.log(`resl ${i}: ${rr3.toString(16)}`);
+        console.log(`hash ${i}: ${rh.toString(16)}`);
         console.log(`inpt ${i}: ${input2.toString(16)}`);
         console.log(`salt ${i}: ${salt.toString(16)}`);
         console.log(`pbkd ${i}: ${pbkdf2.toString(16)}`);
