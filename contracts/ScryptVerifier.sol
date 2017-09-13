@@ -2,59 +2,48 @@ pragma solidity ^0.4.15;
 
 import "./Salsa8.sol";
 import "./KeyDeriv.sol";
+import "./ScryptVerifierData.sol";
 
-contract ScryptVerifier {
-    struct Round {
-        uint[4] result;
-        bytes32 hash;
-        bool exists;
-    }
-
-    struct BlockData {
-        bytes input;
-        bytes32 hash;
-        uint number;
-        mapping (uint => Round) rounds;
-    }
+contract ScryptVerifier is ScryptVerifierData {
 
     mapping (bytes32 => BlockData) public blocks;
 
-    struct Challenge {
-        address challenger;
-        bytes32 hash;
-    }
-
-    mapping (bytes32 => Challenge) public challenges;
-
-    event NewBlock(bytes32 indexed hash, uint indexed number);
-    event NewChallenge(bytes32 indexed hash);
+    event NewBlock(bytes32 indexed hash, address indexed submitter, uint indexed number);
+    event NewChallenge(bytes32 indexed hash, address indexed challenger);
 
     function ScryptVerifier() {
     }
 
-    function submit(bytes _input, bytes32 _hash, uint _number) public {
-        blocks[_hash] = BlockData(_input, _hash, _number);
-        NewBlock(_hash, _number);
+    function submit(bytes input, bytes32 hash, uint blockNumber) public {
+        require(blocks[hash].submitter == 0);
+        blocks[hash] = makeBlockData(msg.sender, input, hash, blockNumber);
+        NewBlock(hash, msg.sender, blockNumber);
     }
 
-    function challenge(bytes32 _hash) public {
-        challenges[_hash] = Challenge(msg.sender, _hash);
-        NewChallenge(_hash);
+    function challenge(bytes32 hash) public {
+        require(blocks[hash].submitter != 0);
+        BlockData storage blockData = blocks[hash];
+        require(blockData.challenges[msg.sender].challenger == 0);
+        blockData.challenges[msg.sender] = makeChallenge(msg.sender);
+        NewChallenge(hash, msg.sender);
     }
 
-    function sendHashes(bytes32 _hash, bytes32[] _hashes) public {
-        (_hash);
-        (_hashes);
+    function sendHashes(bytes32 hash, uint start, bytes32[] hashes) public {
+        require(blocks[hash].submitter == msg.sender);
+        BlockData storage blockData = blocks[hash];
+        for (uint i=0; i<hashes.length; ++i) {
+            blockData.rounds[start+i] = makeRound(hashes[i]);
+        }
     }
 
-    function request(bytes32 _hash, uint _round) public {
-        (_hash);
-        (_round);
+    function request(bytes32 hash, uint round) public {
+        (hash);
+        (round);
     }
 
     function runStep(bytes32 _hash, uint step) public returns (bool) {
         uint[4] memory result;
-        Round memory round;
+        RoundData memory round;
 
         BlockData storage blockData = blocks[_hash];
         if (blockData.hash != _hash) {
@@ -78,7 +67,7 @@ contract ScryptVerifier {
             }
             uint idx = round.result[2];
             idx = (idx / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
-            Round storage temp2 = blockData.rounds[idx];
+            RoundData storage temp2 = blockData.rounds[idx];
             if (!temp2.exists) {
                 return false;
             }
@@ -107,7 +96,7 @@ contract ScryptVerifier {
         } else {
             hash = sha3(result[0], result[1], result[2], result[3]);
         }
-        blockData.rounds[step] = Round(result, hash, true);
+        blockData.rounds[step] = makeRoundWithData(hash, result);
 
         return true;
     }
@@ -177,4 +166,5 @@ contract ScryptVerifier {
             dabra[i] = b32enc256(uint(abraka[i]));
         }
     }
+
 }
