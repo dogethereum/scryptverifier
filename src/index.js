@@ -13,20 +13,35 @@ ScryptVerifier.defaults({
 });
 // ScryptTest.synchronization_timeout = 1000;
 
+const submitter = web3.eth.accounts[0];
+const challenger = web3.eth.accounts[1];
+
 async function main() {
   try {
     const scryptVerifier = await ScryptVerifier.deployed();
 
-    const input = require('./run.json');
+    const execution = require('./run.json');
 
-    const blockHeader = web3.toAscii(`0x${input[0].input}`)
-    const blockHash = `0x${input[2049].output}`;
+    const blockHeader = web3.toAscii(`0x${execution[0].input}`)
+    const blockHash = `0x${execution[2049].output}`;
 
-    const result = await scryptVerifier.submit(blockHeader, blockHash, 0);
-    console.log(`Submit: ${result.tx}`);
+    // const submit = await scryptVerifier.submit(blockHeader, blockHash, 0, { from: submitter });
+    // console.log(`Submit: ${submit.tx}`);
+    //
+    // const challenge = await scryptVerifier.challenge(blockHash, { from: challenger });
+    // console.log(`Challenge: ${challenge.tx}`);
+    //
+    // for (let k=0; k<=2049; k += 20) {
+    //   const len = (k + 20<=2049) ? 20 : 2049 - k + 1;
+    //   const hashes = [];
+    //   for (let j=0; j<len; ++j) {
+    //     hashes.push(execution[k + j].input_hash);
+    //   }
+    //   const { tx }= await scryptVerifier.sendHashes(blockHash, k, hashes, { from: submitter });
+    //   console.log(`Send hashes: From ${k}, length: ${len} - ${tx}`);
+    // }
 
-    const blockData = await scryptVerifier.blocks.call(blockHash);
-    console.log(`Result: ${blockData}`);
+    const challenge = await scryptVerifier.request(blockHash, { from: challenger });
 
   } catch (err) {
     console.log(`Error: ${err} ${err.stack}`);
