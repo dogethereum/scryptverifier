@@ -32,13 +32,13 @@ contract ScryptVerifierData {
         return BlockData(submitter, input, hash, blockNumber);
     }
 
-    function makeChallenge(address challenger, bytes32 hash) internal returns (ChallengeData) {
-        return ChallengeData(challenger, hash);
+    function makeChallenge(address challenger, bytes32 blockHash) internal returns (ChallengeData) {
+        return ChallengeData(challenger, blockHash);
     }
 
     function makeRound(bytes32 hash) internal returns (RoundData) {
         uint[4] memory data;
-        return RoundData(hash, data, true);
+        return RoundData(hash, data, false);
     }
 
     function makeRoundWithoutData() internal returns (RoundData) {
