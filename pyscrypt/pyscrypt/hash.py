@@ -167,10 +167,11 @@ def salsa20_8(B):
         B[i] = (B[i] + x[i]) & 0xffffffff
 
 
-def blockmix_salsa8(BY, Yi, r):
+def blockmix_salsa8(BY, Yi, r, callback):
     '''Blockmix; Used by SMix.'''
 
     start = (2 * r - 1) * 16
+    inp = BY[:32 * r]
     X = BY[start:start + 16]                                      # BlockMix - 1
 
     for i in xrange(0, 2 * r):                                    # BlockMix - 2
@@ -192,8 +193,10 @@ def blockmix_salsa8(BY, Yi, r):
         aod = (i + r) * 16
         BY[aod:aod + 16] = BY[aos:aos + 16]
 
+    callback(inp, BY)
 
-def smix(B, Bi, r, N, V, X):
+
+def smix(B, Bi, r, N, V, X, callback):
     '''SMix; a specific case of ROMix. See scrypt.pdf in the links above.'''
 
     X[:32 * r] = B[Bi:Bi + 32 * r]                   # ROMix - 1
@@ -201,20 +204,20 @@ def smix(B, Bi, r, N, V, X):
     for i in xrange(0, N):                           # ROMix - 2
         aod = i * 32 * r                             # ROMix - 3
         V[aod:aod + 32 * r] = X[:32 * r]
-        blockmix_salsa8(X, 32 * r, r)                # ROMix - 4
+        blockmix_salsa8(X, 32 * r, r, lambda input, output: callback(input, output, 1+i))                # ROMix - 4
 
     for i in xrange(0, N):                           # ROMix - 6
         j = X[(2 * r - 1) * 16] & (N - 1)            # ROMix - 7
         for xi in xrange(0, 32 * r):                 # ROMix - 8(inner)
             X[xi] ^= V[j * 32 * r + xi]
 
-        blockmix_salsa8(X, 32 * r, r)                # ROMix - 9(outer)
+        blockmix_salsa8(X, 32 * r, r, lambda input, output: callback(input, output, 1+N+i))                # ROMix - 9(outer)
 
     B[Bi:Bi + 32 * r] = X[:32 * r]                   # ROMix - 10
 
 
 
-def hash(password, salt, N, r, p, dkLen):
+def hash(password, salt, N, r, p, dkLen, callback):
     """Returns the result of the scrypt password-based key derivation function.
 
        Constraints:
@@ -238,14 +241,17 @@ def hash(password, salt, N, r, p, dkLen):
     prf = lambda k, m: hmac.new(key = k, msg = m, digestmod = hashlib.sha256).digest()
 
     # convert into integers
-    B  = [ get_byte(c) for c in pbkdf2_single(password, salt, p * 128 * r, prf) ]
+    B = pbkdf2_single(password, salt, p * 128 * r, prf)
+    callback(password, B, 0)
+    B  = [ get_byte(c) for c in B ]
+
     B = [ ((B[i + 3] << 24) | (B[i + 2] << 16) | (B[i + 1] << 8) | B[i + 0]) for i in xrange(0, len(B), 4)]
 
     XY = [ 0 ] * (64 * r)
     V  = [ 0 ] * (32 * r * N)
 
     for i in xrange(0, p):
-        smix(B, i * 32 * r, r, N, V, XY)
+        smix(B, i * 32 * r, r, N, V, XY, callback)
 
     # Convert back into bytes
     Bc = [ ]
@@ -255,4 +261,7 @@ def hash(password, salt, N, r, p, dkLen):
         Bc.append((i >> 16) & 0xff)
         Bc.append((i >> 24) & 0xff)
 
-    return pbkdf2_single(password, chars_to_bytes(Bc), dkLen, prf)
+    Bc = chars_to_bytes(Bc)
+    out = pbkdf2_single(password, chars_to_bytes(Bc), dkLen, prf)
+    callback(Bc, out, 2*N+1)
+    return out
