@@ -193,7 +193,7 @@ def blockmix_salsa8(BY, Yi, r, callback):
         aod = (i + r) * 16
         BY[aod:aod + 16] = BY[aos:aos + 16]
 
-    callback(inp, BY)
+    callback(inp, BY[:32 * r])
 
 
 def smix(B, Bi, r, N, V, X, callback):
