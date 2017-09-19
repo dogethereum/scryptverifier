@@ -4,7 +4,7 @@ contract ScryptVerifierData {
     struct RoundData {
         bytes32 hash;
         uint[4] data;
-        bool exists;
+        uint8 kind;
     }
 
     struct RequestData {
@@ -38,17 +38,17 @@ contract ScryptVerifierData {
 
     function makeRound(bytes32 hash) internal returns (RoundData) {
         uint[4] memory data;
-        return RoundData(hash, data, false);
+        return RoundData(hash, data, 1);
     }
 
     function makeRoundWithoutData() internal returns (RoundData) {
         uint[4] memory data;
-        return RoundData(0, data, false);
+        return RoundData(0, data, 0);
     }
 
 
     function makeRoundWithData(bytes32 hash, uint[4] data) internal returns (RoundData) {
-        return RoundData(hash, data, true);
+        return RoundData(hash, data, 2);
     }
 
     function makeRequest(address challenger, uint round) internal returns (RequestData) {

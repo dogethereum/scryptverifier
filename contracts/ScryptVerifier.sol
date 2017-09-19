@@ -11,12 +11,10 @@ contract ScryptVerifier is ScryptVerifierData {
 
     event NewBlock(bytes32 indexed blockHash);
     event NewChallenge(bytes32 indexed challengeId, bytes32 indexed blockHash);
-    event NewRequest(bytes32 indexed challengeId, uint round);
-    event RoundVerified(bytes32 indexed challengeId, uint round, bool success);
-
-    /*bytes32 public uno;
-    bytes32 public dos;
-    uint[4] public tres;*/
+    event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start, uint step, uint length);
+    event NewRequest(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
+    event NewDataArrived(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
+    event RoundVerified(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
 
     function ScryptVerifier() {
     }
@@ -29,21 +27,21 @@ contract ScryptVerifier is ScryptVerifierData {
 
     function challenge(bytes32 blockHash) public {
         require(blocks[blockHash].submitter != 0);
-        //BlockData storage blockData = blocks[blockHash];
         bytes32 challengeId = sha3(msg.sender, blockHash, block.number);
         require(challenges[challengeId].challenger == 0);
         challenges[challengeId] = makeChallenge(msg.sender, blockHash);
         NewChallenge(challengeId, blockHash);
     }
 
-    function sendHashes(bytes32 challengeId, uint start, bytes32[] hashes) public {
+    function sendHashes(bytes32 challengeId, uint start, uint step, bytes32[] hashes) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
         bytes32 blockHash = challenges[challengeId].blockHash;
         require(blocks[blockHash].submitter == msg.sender); // only submitter can reply
         BlockData storage blockData = blocks[blockHash];
         for (uint i=0; i<hashes.length; ++i) {
-            blockData.rounds[start+i] = makeRound(hashes[i]);
+            blockData.rounds[start+i*step] = makeRound(hashes[i]);
         }
+        NewDataHashes(challengeId, blockHash, start, step, hashes.length);
     }
 
     function request(bytes32 challengeId, uint round) public {
@@ -51,12 +49,9 @@ contract ScryptVerifier is ScryptVerifierData {
         ChallengeData storage challengeData = challenges[challengeId];
         require(blocks[challengeData.blockHash].submitter != 0); // existing block
         BlockData storage blockData = blocks[challengeData.blockHash];
-        //require(blockData.requests[round].challenger == 0); // no previous request
-        //ChallengeData storage challengeData = blockData.challenges[msg.sender];
-        //challengeData.requests.push(round);
         if (blockData.requests[round].challenger == 0) {
             blockData.requests[round] = makeRequest(msg.sender, round);
-            NewRequest(challengeId, round);
+            NewRequest(challengeId, challengeData.blockHash, round);
         }
     }
 
@@ -66,14 +61,13 @@ contract ScryptVerifier is ScryptVerifierData {
         require(blocks[blockHash].submitter == msg.sender); // only submitter can send data
         BlockData storage blockData = blocks[blockHash];
         require(blockData.requests[round].challenger != 0); // existing request
-        // address challenger = blockData.requests[round].challenger;
-        //require(blockData.requests[round].answered != true);
         RoundData storage roundData = blockData.rounds[round];
         bytes32 hash = sha3(data[0], data[1], data[2], data[3]);
         require(hash ==  roundData.hash);
         blockData.requests[round].answered = true;
         roundData.data = data;
-        roundData.exists = true;
+        roundData.kind = 2;
+        NewDataArrived(challengeId, blockHash, round);
     }
 
     function verify(bytes32 challengeId, uint round) public {
@@ -82,17 +76,28 @@ contract ScryptVerifier is ScryptVerifierData {
         require(blocks[blockHash].submitter != 0);
         BlockData storage blockData = blocks[blockHash];
 
-        RoundData memory roundData2 = executeStep(blockHash, round + 1);
-        /*uno = roundData2.hash;
-        dos = blockData.rounds[round + 1].hash;
-        tres = roundData2.data;*/
-        bool correct = (roundData2.hash == blockData.rounds[round + 1].hash);
-        RoundVerified(challengeId, round, correct);
+        bool correct = true;
+        uint step = round;
+        RoundData memory roundData;
+        for (uint i=0; i<10 && correct; ++i) {
+          step += 1;
+          roundData = executeStep(blockHash, step);
+          if (roundData.kind == 2) {
+            if (blockData.rounds[step].kind != 0) {
+              assert(blockData.rounds[step].hash == roundData.hash);
+            }
+            blockData.rounds[step] = roundData;
+          } else {
+            correct = false;
+          }
+        }
+        assert(correct && roundData.hash == blockData.rounds[step].hash);
+        RoundVerified(challengeId, blockHash, round);
     }
 
     function runStep(bytes32 hash, uint round) public returns (bool) {
         RoundData memory roundData = executeStep(hash, round);
-        if (roundData.exists) {
+        if (roundData.kind == 2) {
             blocks[hash].rounds[round] = roundData;
             return true;
         }
@@ -114,19 +119,19 @@ contract ScryptVerifier is ScryptVerifierData {
             result = b32enc(temp);
         } else if (step <= 1024) {
             round = blockData.rounds[step - 1];
-            if (!round.exists) {
+            if (round.kind != 2) {
                 return makeRoundWithoutData();
             }
             result = Salsa8.round(round.data);
         } else if (step <= 2048) {
             round = blockData.rounds[step - 1];
-            if (!round.exists) {
+            if (round.kind != 2) {
                 return makeRoundWithoutData();
             }
             uint idx = round.data[2];
             idx = (idx / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
             RoundData storage temp2 = blockData.rounds[idx];
-            if (!temp2.exists) {
+            if (temp2.kind != 2) {
                 return makeRoundWithoutData();
             }
             result = Salsa8.round([
@@ -137,7 +142,7 @@ contract ScryptVerifier is ScryptVerifierData {
             ]);
         } else if (step == 2049) {
             round = blockData.rounds[step - 1];
-            if (!round.exists) {
+            if (round.kind != 2) {
                 return makeRoundWithoutData();
             }
             bytes memory salt = concatenate(round.data);
@@ -157,23 +162,10 @@ contract ScryptVerifier is ScryptVerifierData {
         return makeRoundWithData(hash, result);
     }
 
-    /*function set(int step, uint[4] round) public returns (bool) {
-        bytes32 h;
-        h = sha3(round[0], round[1], round[2], round[3]);
-        rounds[step] = Round(round, h, true);
-    }*/
-
-    /*function get(int step) constant public returns (bool exists, uint h1, uint h2, uint h3, uint h4, bytes32 h) {
-        Round storage r = rounds[step];
-        if (!r.exists) {
-            return (false, 0, 0, 0, 0, 0);
-        }
-        return (r.exists, r.result[0], r.result[1], r.result[2], r.result[3], r.hash);
-    }*/
-
-    /*function getRequiredBlock(uint f) constant public returns (uint idx) {
-        idx = (f / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
-    }*/
+    function getRoundData(bytes32 blockHash, uint step) constant public returns (uint8, uint, uint, uint, uint, bytes32) {
+        RoundData storage r = blocks[blockHash].rounds[step];
+        return (r.kind, r.data[0], r.data[1], r.data[2], r.data[3], r.hash);
+    }
 
     function concatenate(uint[4] _input) internal returns (bytes res) {
       res = new bytes(4*32);
@@ -187,16 +179,7 @@ contract ScryptVerifier is ScryptVerifierData {
       }
     }
 
-    /*function pbkdf(bytes _input) constant public returns (uint[4] _output) {
-        bytes32[4] memory _pbkdf = KeyDeriv.pbkdf2(_input, _input, 128);
-        _output = b32enc(_pbkdf);
-    }*/
-
-    /*function round(uint[4] _input) constant public returns (uint[4] _output) {
-        _output = Salsa8.round(_input);
-    }*/
-
-    function reverse(uint _input) constant public returns (uint _output) {
+    function reverse(uint _input) internal returns (uint _output) {
         for (uint i=0; i<32; ++i) {
           _output |= ((_input / 0x100**(31 - i)) & 0xFF) * 0x100**i;
         }
