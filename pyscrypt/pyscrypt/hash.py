@@ -211,7 +211,12 @@ def smix(B, Bi, r, N, V, X, callback):
         for xi in xrange(0, 32 * r):                 # ROMix - 8(inner)
             X[xi] ^= V[j * 32 * r + xi]
 
-        blockmix_salsa8(X, 32 * r, r, lambda input, output: callback(input, output, 1+N+i))                # ROMix - 9(outer)
+        extra = {
+            "input2": V[j * 32 * r: (j + 1) * 32 * r],
+            "input2_index": j
+        }
+
+        blockmix_salsa8(X, 32 * r, r, lambda input, output: callback(input, output, 1+N+i, extra=extra))                # ROMix - 9(outer)
 
     B[Bi:Bi + 32 * r] = X[:32 * r]                   # ROMix - 10
 

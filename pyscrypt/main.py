@@ -31,7 +31,7 @@ class ScryptOutput:
         self.filename = filename
         self.rounds = []
 
-    def __call__(self, input, output, step):
+    def __call__(self, input, output, step, extra={}):
         if step == 2049:
             output = b32dec(output[::-1])
         elif step == 0:
@@ -46,6 +46,11 @@ class ScryptOutput:
             "output": hexlify(b32dec(output)).decode('ascii'),
             "output_hash": hexlify(sha3(b32dec(output))).decode('ascii')
         }
+        if 'input2' in extra:
+            input2 = tobytes(extra['input2'])
+            round['input2'] = hexlify(b32dec(input2)).decode('ascii');
+            round['input2_hash'] = hexlify(sha3(b32dec(input2))).decode('ascii');
+            round['input2_index'] = extra['input2_index'];
         if self.filename:
             self.rounds.append(round)
         else:
