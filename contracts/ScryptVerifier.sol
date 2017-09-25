@@ -16,6 +16,11 @@ contract ScryptVerifier is ScryptVerifierData {
     event NewDataArrived(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
     event RoundVerified(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
 
+    uint public uno;
+    bytes32 public dos;
+    bytes32 public tres;
+    uint public cuatro;
+
     function ScryptVerifier() {
     }
 
@@ -62,12 +67,69 @@ contract ScryptVerifier is ScryptVerifierData {
         BlockData storage blockData = blocks[blockHash];
         require(blockData.requests[round].challenger != 0); // existing request
         RoundData storage roundData = blockData.rounds[round];
+        require(0 !=  roundData.kind);
         bytes32 hash = sha3(data[0], data[1], data[2], data[3]);
         require(hash ==  roundData.hash);
         blockData.requests[round].answered = true;
         roundData.data = data;
         roundData.kind = 2;
         NewDataArrived(challengeId, blockHash, round);
+    }
+
+    function sendData2(bytes32 challengeId, uint round, uint[4] data, uint[4*10] extra) public {
+        require(challenges[challengeId].challenger != 0); // existing challenge
+        bytes32 blockHash = challenges[challengeId].blockHash;
+        require(blocks[blockHash].submitter == msg.sender); // only submitter can send data
+        BlockData storage blockData = blocks[blockHash];
+        require(blockData.requests[round].challenger != 0); // existing request
+        RoundData storage roundData = blockData.rounds[round];
+        require(0 !=  roundData.kind);
+        bytes32 hash = sha3(data[0], data[1], data[2], data[3]);
+        require(hash ==  roundData.hash);
+        blockData.requests[round].answered = true;
+        roundData.data = data;
+        roundData.kind = 2;
+        NewDataArrived(challengeId, blockHash, round);
+
+        uint step = round;
+        bool correct = true;
+        RoundData memory roundData2 = roundData;
+        for (uint i=0; i<10 && correct; ++i) {
+          step += 1;
+          uint idx = roundData2.data[2];
+          idx = (idx / 256**28) % 1024;
+          RoundData storage extraInput = blockData.rounds[idx];
+          if (extraInput.kind == 0) {
+            extraInput.hash = sha3(extra[4*i + 0], extra[4*i + 1], extra[4*i + 2], extra[4*i + 3]);
+            extraInput.data[0] = extra[4*i + 0];
+            extraInput.data[1] = extra[4*i + 1];
+            extraInput.data[2] = extra[4*i + 2];
+            extraInput.data[3] = extra[4*i + 3];
+            extraInput.kind = 2;
+          } else if (extraInput.kind == 1) {
+            hash = sha3(extra[4*i + 0], extra[4*i + 1], extra[4*i + 2], extra[4*i + 3]);
+            assert(hash == extraInput.hash);
+            extraInput.data[0] = extra[4*i + 0];
+            extraInput.data[1] = extra[4*i + 1];
+            extraInput.data[2] = extra[4*i + 2];
+            extraInput.data[3] = extra[4*i + 3];
+            extraInput.kind = 2;
+          }
+          roundData2 = executeStep(blockHash, step);
+          if (roundData2.kind == 2) {
+            if (blockData.rounds[step].kind == 1) {
+              assert(blockData.rounds[step].hash == roundData2.hash);
+            }
+            blockData.rounds[step] = roundData2;
+          } else {
+            correct = false;
+          }
+        }
+        /*uno  = correct ? 42 : 0;
+        dos = roundData2.hash;
+        tres = blockData.rounds[step].hash;
+        cuatro = step;*/
+        assert(correct && roundData2.hash == blockData.rounds[step].hash);
     }
 
     function verify(bytes32 challengeId, uint round) public {
@@ -110,7 +172,7 @@ contract ScryptVerifier is ScryptVerifierData {
 
         BlockData storage blockData = blocks[_hash];
         if (blockData.hash != _hash) {
-            return makeRoundWithoutData();
+            return makeRoundWithoutData(1);
         }
 
         if (step == 0) {
@@ -120,19 +182,19 @@ contract ScryptVerifier is ScryptVerifierData {
         } else if (step <= 1024) {
             round = blockData.rounds[step - 1];
             if (round.kind != 2) {
-                return makeRoundWithoutData();
+                return makeRoundWithoutData(2);
             }
             result = Salsa8.round(round.data);
         } else if (step <= 2048) {
             round = blockData.rounds[step - 1];
             if (round.kind != 2) {
-                return makeRoundWithoutData();
+                return makeRoundWithoutData(3);
             }
             uint idx = round.data[2];
-            idx = (idx / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
+            idx = (idx / 256**28) % 1024;
             RoundData storage temp2 = blockData.rounds[idx];
             if (temp2.kind != 2) {
-                return makeRoundWithoutData();
+                return makeRoundWithoutData(4);
             }
             result = Salsa8.round([
                 round.data[0] ^ temp2.data[0],
@@ -143,14 +205,14 @@ contract ScryptVerifier is ScryptVerifierData {
         } else if (step == 2049) {
             round = blockData.rounds[step - 1];
             if (round.kind != 2) {
-                return makeRoundWithoutData();
+                return makeRoundWithoutData(5);
             }
             bytes memory salt = concatenate(round.data);
             bytes32[4] memory temp3 = KeyDeriv.pbkdf2(blockData.input, salt, 32);
             bytes32 output = bytes32(reverse(uint(temp3[0])));
             result[0] = uint(output);
         } else {
-            return makeRoundWithoutData();
+            return makeRoundWithoutData(6);
         }
 
         bytes32 hash;

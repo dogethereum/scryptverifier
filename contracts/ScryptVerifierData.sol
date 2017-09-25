@@ -41,9 +41,9 @@ contract ScryptVerifierData {
         return RoundData(hash, data, 1);
     }
 
-    function makeRoundWithoutData() internal returns (RoundData) {
+    function makeRoundWithoutData(uint h) internal returns (RoundData) {
         uint[4] memory data;
-        return RoundData(0, data, 0);
+        return RoundData(bytes32(h), data, 0);
     }
 
 
