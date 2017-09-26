@@ -99,7 +99,7 @@ contract('ScryptVerifier1', function(accounts) {
     assert.equal(round, 10, 'Required round should match');
   });
   it("Send input", async function() {
-    const sendDataTx = await scryptVerifier.sendData(challengeId, 10, roundInput[1], { from: submitter });
+    const sendDataTx = await scryptVerifier.sendData(challengeId, 10, roundInput[1], [], { from: submitter });
     const { challengeId: thisChallengeId, round } = getNewDataArrivedArgs(sendDataTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
     assert.equal(round, 10, 'Required round should match');
@@ -108,14 +108,6 @@ contract('ScryptVerifier1', function(accounts) {
       assert.equal(`0x${roundData[1+i].toString(16)}`, roundInput[1][i], 'Round input set correctly');
     }
   });
-  // it("Verify input", async function() {
-  //   const verifyTx = await scryptVerifier.verify(challengeId, 10, { from: challenger });
-  //   const { challengeId: thisChallengeId, round } = getRoundVerifiedArgs(verifyTx);
-  //   assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
-  //   const roundData = await scryptVerifier.getRoundData.call(blockHash, 20);
-  //   assert.equal(intermediateHashes[2], roundData[5], 'Resulting hashes should match');
-  // });
-
   });
 
 });
@@ -210,6 +202,58 @@ contract('ScryptVerifier2', function(accounts) {
       "0xd3d3a1ae6fcd2eba46a74f9ebbd6f361066bc2a8eea2e2d4e119c286d584a46b",
       "0x84545c77cc0a9dc23e114dbcb6c423c2e9860cb710f9a2ddce1f4ea581193e86",
       "0x2393fc5642750227cc758c74eceb004799cf7d1121ac8c9548a7ab061337d642"
+    ],
+    [
+      // 460
+      "0xbba42e21bb56f18f7a5422d9f824adaf5867db65c857b6d5298700f16ca83401",
+      "0x69bcb3ac17cadeaa5d6d46cedd62f316a4bc039cf0a79f47aa4e1ec2add66ed4",
+      "0x63f489ffca21dedfc52cd50a714fe9e1cdb03989497ab6e772abed209531d917",
+      "0x672e5fa12abd300497dc39e0d10b4be7feac462c880988d1f682d9329ccb8f6e",
+      // 1019
+      "0xbd009a919ebb845338020fefa500261749635ba6a3a8774fa7defd1f206defcb",
+      "0xef7c263cae1ecb2cfd1ef9f2905299c278c7c05b6c3e1d1f5796319541fe9742",
+      "0xcbb87cbc6e4c03aa9630bbc334ea6d8bf6ae5c3f5e17d38fc9df25d7d50d0001",
+      "0x1e708eb93fc4c1ae2b87bad3615d06985296e6899bc308159c45518adbd3836d",
+      // 589
+      "0x503ce82c5578378a136fb40026df5c2367d1b35912f0677f02b987d2e44687ea",
+      "0xd4e3e41309b4fa023de906f821dad13e0721aeba69215f535f6c6b562ea33d20",
+      "0x2121831c8b2b8ac87f1dda1b5ac615e239e5b94c747627f78594c2a66409e751",
+      "0x8b139098d68c230e42747f030cdfa44231443afe65bf33b8f06120aa10bb44e1",
+      // 914
+      "0xaea71d0a92b36c2fb02f5a870ef80c32bd435b1f97f0021b7008395457041dbc",
+      "0x0374de5aa1e998a77392b3439785fbe11dd3d3e37e762ea741607094fba610e1",
+      "0xb23cbba5a99d274951c5f08dae3d2d07509855fc8c3826d622b5fb0abf9281fb",
+      "0xa9150f681b232cbdc362fb9be83106ce4f0a083c6a1dd4ec65187b809f90c6ae",
+      // 617
+      "0x18cfebaeadd0d2feb9efb2b521b597ea2777eba2bb7bade27ad3726ba47a4685",
+      "0x3ba91526cfc573084706556b5cd91637683a9d3e37477dc21f40a2c1742d7007",
+      "0x27a6d67eb3ed348f7ee66a7e8cf80e45d9def2c22e46b4a8fae68ed85d1d4b95",
+      "0xd184f4e1d7147a4e72942b9c187bef306e2a5155ba5dc04dde41defad91cf939",
+      // 361
+      "0x44294e4bc00390f56f46f31e581f90b1294fd5c75629d9e40398c3964f563251",
+      "0x4dbf70482414f000707f1860688f99a4157063b6069373cd2216c8be9ba2f7f7",
+      "0x41601571411fa6124ce739ba4f529210a2c215bd64335b3ed6c555943d6f897c",
+      "0x8a2f64e13cfb94a7e18b163333b09fc29bf80362ba1ae79840e8386cd76b25dd",
+      // 369
+      "0xe0fe23fa8442aab1adc9825db20673881eb0b3a0b76db498ecef58625dd13e17",
+      "0x20d820ebbfff6ad256eb03ba088445869e42531bb143e076c049df64c182b5c3",
+      "0xfff5b2e3945fd23c20ce0258cddec81246a48232dcb7a56b1cb6f316015a02d3",
+      "0x2720f2c28e2cc36ef0dfb175eca97e2bb8186821c3eb5c36158feec04f5da355",
+      // 932
+      "0x36f5e4cfbd2d7cc622ed4e27a1258247965f3b72320fafc14725c61ad2f8bc62",
+      "0xaacb2507b103336ce5273f562d85740518f1b946c1c7a41644da38e92f3b389f",
+      "0xf221b7d203902609dbbcd04ccd5f922118ce0aba43b92449c8498af6938be5eb",
+      "0xc392d4233a24fa26bab1ab0a143febb1fcd3d31196cac617562885cdcec16219",
+      // 801
+      "0xdf07dbbfcdc6bce20106f3bf920e57172e69e0e75398feb329284f20ab99cb86",
+      "0xd2c1e9b28dc3d3f0f7b926a81749029f43197c26844f4bcbaa27fe14fc3398ee",
+      "0x864d560a9d553eb483e958d515b35d882125d4f58d215463f9a0e49220e85a41",
+      "0x804662a6eabcf31335642ddd5dd51ff96d56ac022be1cebeb482d847625a2a0d",
+      //
+      "0xd2aac1fe3166b80f8b967e02a0a6d6c6031c3d3829aa7fd8c0253b0f0b8c2906",
+      "0xf76e36b45f8cea470bd87a5174009b93ae96b0c33fbd82531646d03e79ef9c96",
+      "0x4f19fcd6959747a6426136e6b023cd7e1957a9c59079f6176cc06fe05ba73152",
+      "0xdbe0de6fc4ed488fddb33ba841a09910f45e4695bf07da7296eb039f7c9703fb"
     ]
   ]
 
@@ -246,43 +290,20 @@ contract('ScryptVerifier2', function(accounts) {
     }
   });
   it("Request input", async function() {
-    const requestTx = await scryptVerifier.request(challengeId, 1025, { from: challenger });
+    const requestTx = await scryptVerifier.request(challengeId, 1035, { from: challenger });
     const { challengeId: thisChallengeId, round } = getNewRequestArgs(requestTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
-    assert.equal(round, 1025, 'Required round should match');
+    assert.equal(round, 1035, 'Required round should match');
   });
   it("Send input", async function() {
-    const sendDataTx = await scryptVerifier.sendData2(challengeId, 1025, roundInput[0], extraInputs[0], { from: submitter });
+    const sendDataTx = await scryptVerifier.sendData(challengeId, 1035, roundInput[1], extraInputs[1], { from: submitter });
     const { challengeId: thisChallengeId, round } = getNewDataArrivedArgs(sendDataTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
-    assert.equal(round, 1025, 'Required round should match');
-    const roundData = await scryptVerifier.getRoundData.call(blockHash, 1025);
+    assert.equal(round, 1035, 'Required round should match');
+    const roundData = await scryptVerifier.getRoundData.call(blockHash, 1035);
     for (let i=0; i<4; ++i) {
-      assert.equal(`0x${roundData[1+i].toString(16)}`, roundInput[0][i], 'Round input set correctly');
+      assert.equal(`0x${roundData[1+i].toString(16)}`, roundInput[1][i], 'Round input set correctly');
     }
-    // const [
-    //   uno,
-    //   dos,
-    //   tres,
-    //   cuatro
-    // ] = await Promise.all([
-    //   scryptVerifier.uno.call(),
-    //   scryptVerifier.dos.call(),
-    //   scryptVerifier.tres.call(),
-    //   scryptVerifier.cuatro.call(),
-    // ]);
-    // console.log(`Uno: ${uno.toString(16)}`);
-    // console.log(`Dos: ${dos.toString(16)}`);
-    // console.log(`Tres: ${tres.toString(16)}`);
-    // console.log(`Cuatro: ${cuatro.toString(16)}`);
   });
-  // it("Verify input", async function() {
-  //   const verifyTx = await scryptVerifier.verify(challengeId, 10, { from: challenger });
-  //   const { challengeId: thisChallengeId, round } = getRoundVerifiedArgs(verifyTx);
-  //   assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
-  //   const roundData = await scryptVerifier.getRoundData.call(blockHash, 20);
-  //   assert.equal(intermediateHashes[2], roundData[5], 'Resulting hashes should match');
-  // });
-
   });
 });

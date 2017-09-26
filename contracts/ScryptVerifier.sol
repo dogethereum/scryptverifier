@@ -60,7 +60,7 @@ contract ScryptVerifier is ScryptVerifierData {
         }
     }
 
-    function sendData(bytes32 challengeId, uint round, uint[4] data) public {
+    function sendData(bytes32 challengeId, uint round, uint[4] data, uint[] extra) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
         bytes32 blockHash = challenges[challengeId].blockHash;
         require(blocks[blockHash].submitter == msg.sender); // only submitter can send data
@@ -80,6 +80,14 @@ contract ScryptVerifier is ScryptVerifierData {
         RoundData memory roundData2 = roundData;
         for (uint i=0; i<10 && correct; ++i) {
           step += 1;
+          if (step > 1024) {
+            sendExtra(blockData, roundData2.data[2], [
+              extra[4*i + 0],
+              extra[4*i + 1],
+              extra[4*i + 2],
+              extra[4*i + 3]
+            ]);
+          }
           roundData2 = executeStep(blockHash, step);
           if (roundData2.kind == 2) {
             if (blockData.rounds[step].kind == 1) {
@@ -111,71 +119,6 @@ contract ScryptVerifier is ScryptVerifierData {
       } else {
         assert(hash == extraInput.hash);
       }
-    }
-
-    function sendData2(bytes32 challengeId, uint round, uint[4] data, uint[4*10] extra) public {
-        require(challenges[challengeId].challenger != 0); // existing challenge
-        bytes32 blockHash = challenges[challengeId].blockHash;
-        require(blocks[blockHash].submitter == msg.sender); // only submitter can send data
-        BlockData storage blockData = blocks[blockHash];
-        require(blockData.requests[round].challenger != 0); // existing request
-        RoundData storage roundData = blockData.rounds[round];
-        require(0 !=  roundData.kind);
-        bytes32 hash = sha3(data[0], data[1], data[2], data[3]);
-        require(hash ==  roundData.hash);
-        blockData.requests[round].answered = true;
-        roundData.data = data;
-        roundData.kind = 2;
-        NewDataArrived(challengeId, blockHash, round);
-
-        uint step = round;
-        bool correct = true;
-        RoundData memory roundData2 = roundData;
-        for (uint i=0; i<10 && correct; ++i) {
-          step += 1;
-          sendExtra(blockData, roundData2.data[2], [
-            extra[4*i + 0],
-            extra[4*i + 1],
-            extra[4*i + 2],
-            extra[4*i + 3]
-          ]);
-          roundData2 = executeStep(blockHash, step);
-          if (roundData2.kind == 2) {
-            if (blockData.rounds[step].kind == 1) {
-              assert(blockData.rounds[step].hash == roundData2.hash);
-            }
-            blockData.rounds[step] = roundData2;
-          } else {
-            correct = false;
-          }
-        }
-        assert(correct && roundData2.hash == blockData.rounds[step].hash);
-        RoundVerified(challengeId, blockHash, round);
-    }
-
-    function verify(bytes32 challengeId, uint round) public {
-        require(challenges[challengeId].challenger != 0); // existing challenge
-        bytes32 blockHash = challenges[challengeId].blockHash;
-        require(blocks[blockHash].submitter != 0);
-        BlockData storage blockData = blocks[blockHash];
-
-        bool correct = true;
-        uint step = round;
-        RoundData memory roundData;
-        for (uint i=0; i<10 && correct; ++i) {
-          step += 1;
-          roundData = executeStep(blockHash, step);
-          if (roundData.kind == 2) {
-            if (blockData.rounds[step].kind != 0) {
-              assert(blockData.rounds[step].hash == roundData.hash);
-            }
-            blockData.rounds[step] = roundData;
-          } else {
-            correct = false;
-          }
-        }
-        assert(correct && roundData.hash == blockData.rounds[step].hash);
-        RoundVerified(challengeId, blockHash, round);
     }
 
     function runStep(bytes32 hash, uint round) public returns (bool) {

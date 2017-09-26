@@ -25,7 +25,6 @@ contract ScryptVerifierData {
         uint number;
         mapping (uint => RoundData) rounds;
         mapping (uint => RequestData) requests;
-        // mapping (address => ChallengeData) challenges;
     }
 
     function makeBlockData(address submitter, bytes input, bytes32 hash, uint blockNumber) internal returns (BlockData) {
