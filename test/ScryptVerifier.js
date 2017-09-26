@@ -108,13 +108,13 @@ contract('ScryptVerifier1', function(accounts) {
       assert.equal(`0x${roundData[1+i].toString(16)}`, roundInput[1][i], 'Round input set correctly');
     }
   });
-  it("Verify input", async function() {
-    const verifyTx = await scryptVerifier.verify(challengeId, 10, { from: challenger });
-    const { challengeId: thisChallengeId, round } = getRoundVerifiedArgs(verifyTx);
-    assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
-    const roundData = await scryptVerifier.getRoundData.call(blockHash, 20);
-    assert.equal(intermediateHashes[2], roundData[5], 'Resulting hashes should match');
-  });
+  // it("Verify input", async function() {
+  //   const verifyTx = await scryptVerifier.verify(challengeId, 10, { from: challenger });
+  //   const { challengeId: thisChallengeId, round } = getRoundVerifiedArgs(verifyTx);
+  //   assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
+  //   const roundData = await scryptVerifier.getRoundData.call(blockHash, 20);
+  //   assert.equal(intermediateHashes[2], roundData[5], 'Resulting hashes should match');
+  // });
 
   });
 

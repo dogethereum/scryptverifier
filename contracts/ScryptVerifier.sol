@@ -74,6 +74,43 @@ contract ScryptVerifier is ScryptVerifierData {
         roundData.data = data;
         roundData.kind = 2;
         NewDataArrived(challengeId, blockHash, round);
+
+        uint step = round;
+        bool correct = true;
+        RoundData memory roundData2 = roundData;
+        for (uint i=0; i<10 && correct; ++i) {
+          step += 1;
+          roundData2 = executeStep(blockHash, step);
+          if (roundData2.kind == 2) {
+            if (blockData.rounds[step].kind == 1) {
+              assert(blockData.rounds[step].hash == roundData2.hash);
+            }
+            blockData.rounds[step] = roundData2;
+          } else {
+            correct = false;
+          }
+        }
+        assert(correct && roundData2.hash == blockData.rounds[step].hash);
+        RoundVerified(challengeId, blockHash, round);
+    }
+
+    function sendExtra(BlockData storage blockData, uint idx, uint[4] extra) internal {
+      // extraInput;
+      bytes32 hash;
+      idx = (idx / 256**28) % 1024;
+      RoundData storage extraInput = blockData.rounds[idx];
+      hash = sha3(extra[0], extra[1], extra[2], extra[3]);
+      if (extraInput.kind == 0) { // Round without info
+        extraInput.hash = hash;
+        extraInput.data = extra;
+        extraInput.kind = 2;
+      } else if (extraInput.kind == 1) { // Round with hash only
+        assert(hash == extraInput.hash);
+        extraInput.data = extra;
+        extraInput.kind = 2;
+      } else {
+        assert(hash == extraInput.hash);
+      }
     }
 
     function sendData2(bytes32 challengeId, uint round, uint[4] data, uint[4*10] extra) public {
@@ -96,25 +133,12 @@ contract ScryptVerifier is ScryptVerifierData {
         RoundData memory roundData2 = roundData;
         for (uint i=0; i<10 && correct; ++i) {
           step += 1;
-          uint idx = roundData2.data[2];
-          idx = (idx / 256**28) % 1024;
-          RoundData storage extraInput = blockData.rounds[idx];
-          if (extraInput.kind == 0) {
-            extraInput.hash = sha3(extra[4*i + 0], extra[4*i + 1], extra[4*i + 2], extra[4*i + 3]);
-            extraInput.data[0] = extra[4*i + 0];
-            extraInput.data[1] = extra[4*i + 1];
-            extraInput.data[2] = extra[4*i + 2];
-            extraInput.data[3] = extra[4*i + 3];
-            extraInput.kind = 2;
-          } else if (extraInput.kind == 1) {
-            hash = sha3(extra[4*i + 0], extra[4*i + 1], extra[4*i + 2], extra[4*i + 3]);
-            assert(hash == extraInput.hash);
-            extraInput.data[0] = extra[4*i + 0];
-            extraInput.data[1] = extra[4*i + 1];
-            extraInput.data[2] = extra[4*i + 2];
-            extraInput.data[3] = extra[4*i + 3];
-            extraInput.kind = 2;
-          }
+          sendExtra(blockData, roundData2.data[2], [
+            extra[4*i + 0],
+            extra[4*i + 1],
+            extra[4*i + 2],
+            extra[4*i + 3]
+          ]);
           roundData2 = executeStep(blockHash, step);
           if (roundData2.kind == 2) {
             if (blockData.rounds[step].kind == 1) {
@@ -125,11 +149,8 @@ contract ScryptVerifier is ScryptVerifierData {
             correct = false;
           }
         }
-        /*uno  = correct ? 42 : 0;
-        dos = roundData2.hash;
-        tres = blockData.rounds[step].hash;
-        cuatro = step;*/
         assert(correct && roundData2.hash == blockData.rounds[step].hash);
+        RoundVerified(challengeId, blockHash, round);
     }
 
     function verify(bytes32 challengeId, uint round) public {
