@@ -167,11 +167,10 @@ def salsa20_8(B):
         B[i] = (B[i] + x[i]) & 0xffffffff
 
 
-def blockmix_salsa8(BY, Yi, r, callback):
+def blockmix_salsa8(BY, Yi, r):
     '''Blockmix; Used by SMix.'''
 
     start = (2 * r - 1) * 16
-    inp = BY[:32 * r]
     X = BY[start:start + 16]                                      # BlockMix - 1
 
     for i in xrange(0, 2 * r):                                    # BlockMix - 2
@@ -193,8 +192,6 @@ def blockmix_salsa8(BY, Yi, r, callback):
         aod = (i + r) * 16
         BY[aod:aod + 16] = BY[aos:aos + 16]
 
-    callback(inp, BY[:32 * r])
-
 
 def smix(B, Bi, r, N, V, X, callback):
     '''SMix; a specific case of ROMix. See scrypt.pdf in the links above.'''
@@ -204,19 +201,23 @@ def smix(B, Bi, r, N, V, X, callback):
     for i in xrange(0, N):                           # ROMix - 2
         aod = i * 32 * r                             # ROMix - 3
         V[aod:aod + 32 * r] = X[:32 * r]
-        blockmix_salsa8(X, 32 * r, r, lambda input, output: callback(input, output, 1+i))                # ROMix - 4
+        input = X[:32 * r]
+        blockmix_salsa8(X, 32 * r, r)                # ROMix - 4
+        callback(input, X[:32 * r], i + 1)
 
     for i in xrange(0, N):                           # ROMix - 6
         j = X[(2 * r - 1) * 16] & (N - 1)            # ROMix - 7
-        for xi in xrange(0, 32 * r):                 # ROMix - 8(inner)
-            X[xi] ^= V[j * 32 * r + xi]
-
+        input = X[:32 * r]
         extra = {
             "input2": V[j * 32 * r: (j + 1) * 32 * r],
             "input2_index": j
         }
+        for xi in xrange(0, 32 * r):                 # ROMix - 8(inner)
+            X[xi] ^= V[j * 32 * r + xi]
 
-        blockmix_salsa8(X, 32 * r, r, lambda input, output: callback(input, output, 1+N+i, extra=extra))                # ROMix - 9(outer)
+
+        blockmix_salsa8(X, 32 * r, r)                # ROMix - 9(outer)
+        callback(input, X[:32 * r], N + i + 1, extra=extra)
 
     B[Bi:Bi + 32 * r] = X[:32 * r]                   # ROMix - 10
 
