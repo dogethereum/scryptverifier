@@ -18,12 +18,6 @@ const challenger = web3.eth.accounts[1];
 let scryptVerifier;
 
 async function waitNewBlock(blockHash) {
-  const blockData = await scryptVerifier.blocks.call(blockHash);
-
-  if (blockData[2] === blockHash) {
-    return blockData;
-  }
-
   return new Promise((resolve, reject) => {
     const event = scryptVerifier.NewBlock();
     event.watch((err, result) => {
@@ -32,10 +26,48 @@ async function waitNewBlock(blockHash) {
         reject(err);
       } else {
         event.stopWatching();
-        console.log(`${JSON.stringify(result, null, '  ')}`);
+        // console.log(`${JSON.stringify(result, null, '  ')}`);
         resolve(result);
       }
     });
+  });
+}
+
+async function waitNewDataHashes(challengeId) {
+  return new Promise((resolve, reject) => {
+    const event = scryptVerifier.NewDataHashes({ challengeId });
+    event.watch((err, result) => {
+      if (err) {
+        event.stopWatching();
+        reject(err);
+      } else {
+        event.stopWatching();
+        //console.log(`Result: ${JSON.stringify(result, null, '  ')}`);
+        resolve(result);
+      }
+    });
+  });
+}
+
+async function waitVerifyData(challengeId, round) {
+  return new Promise((resolve, reject) => {
+    const event = scryptVerifier.RoundVerified({ challengeId });
+    event.watch((err, result) => {
+      if (err) {
+        event.stopWatching();
+        reject(err);
+      } else {
+        event.stopWatching();
+        //console.log(`Result: ${JSON.stringify(result, null, '  ')}`);
+        resolve(result);
+      }
+    });
+  });
+}
+
+async function Sleep(timeout) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, timeout)
   });
 }
 
@@ -48,26 +80,36 @@ async function main() {
     const blockHeader = `0x${executionData[0].input}`;
     const blockHash = `0x${executionData[2049].output}`;
 
-    await waitNewBlock(blockHash);
-    const blockData = await scryptVerifier.blocks.call(blockHash);
+    let blockData = await scryptVerifier.blocks.call(blockHash);
+
+    if (blockData[2] !== blockHash) {
+      console.log(`Waiting for block ${blockHash}`);
+      const blockWait = await waitNewBlock(blockHash);
+      console.log(`Got block: ${blockWait.args.blockHash}`);
+    }
 
     const challengeTx = await scryptVerifier.challenge(blockHash, { from: challenger });
 
-    // const challengeId = challengeTx.logs.filter(lg => lg.event === 'NewChallenge')[0].args.challengeId;
-    // console.log(`ChallengeId: ${JSON.stringify(challengeId, null, '  ')}`);
-    //
-    // const k = 100;
-    // const len = 5;
-    // const hashes = [];
-    // for (let j=0; j<len; ++j) {
-    //   if (executionData[k + j * 10].step != k + j * 10) {
-    //     throw new Error('Not valid round');
-    //   }
-    //   hashes.push(`0x${executionData[k + j * 10].input_hash}`);
-    // }
-    // const sendHashes = await scryptVerifier.sendHashes(challengeId, k, 10, hashes, { from: submitter });
-    // console.log(`Send hashes: From ${k}, length: ${len} - ${sendHashes.tx}`);
-    //
+    const challengeId = challengeTx.logs.filter(lg => lg.event === 'NewChallenge')[0].args.challengeId;
+    console.log(`Challenge id: ${JSON.stringify(challengeId, null, '  ')}`);
+
+    // FIXME: This should listen for the final event only
+    await Sleep(15000);
+
+    const dataHashes = await waitNewDataHashes(challengeId);
+    //console.log(`New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
+
+    const { start, length } = dataHashes.args;
+    console.log(`New data hashes: start: ${start}, length: ${length}`);
+
+    for (let k=0; k<length; ++k) {
+      const request = await scryptVerifier.request(challengeId, k * 10, { from: challenger });
+      //console.log(`Send request: ${JSON.stringify(request, null, '  ')}`);
+      console.log(`Send request: ${request.tx}, waiting verification`);
+      const result = await waitVerifyData(challengeId, k * 10);
+      console.log(`Round verified: ${JSON.stringify(result, null, '  ')}`);
+    }
+
     // const requestBlock = 110;
     // const request = await scryptVerifier.request(challengeId, requestBlock, { from: challenger });
     // console.log(`Send request: ${request.tx}`);

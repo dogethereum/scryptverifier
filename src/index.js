@@ -11,7 +11,7 @@ ScryptVerifier.defaults({
   from: web3.eth.accounts[0],
   gas: 4700000,
 });
-// ScryptTest.synchronization_timeout = 1000;
+// ScryptVerifier.synchronization_timeout = 1000;
 
 const submitter = web3.eth.accounts[0];
 const challenger = web3.eth.accounts[1];
