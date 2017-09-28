@@ -5,13 +5,14 @@ import "./KeyDeriv.sol";
 import "./ScryptVerifierData.sol";
 
 contract ScryptVerifier is ScryptVerifierData {
+    uint constant ROUNDS_PER_CYCLE = 10;
 
     mapping (bytes32 => BlockData) public blocks;
     mapping (bytes32 => ChallengeData) public challenges;
 
     event NewBlock(bytes32 indexed blockHash);
     event NewChallenge(bytes32 indexed challengeId, bytes32 indexed blockHash);
-    event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start, uint step, uint length);
+    event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start, uint length);
     event NewRequest(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
     event NewDataArrived(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
     event RoundVerified(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
@@ -38,15 +39,15 @@ contract ScryptVerifier is ScryptVerifierData {
         NewChallenge(challengeId, blockHash);
     }
 
-    function sendHashes(bytes32 challengeId, uint start, uint step, bytes32[] hashes) public {
+    function sendHashes(bytes32 challengeId, uint start, bytes32[] hashes) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
         bytes32 blockHash = challenges[challengeId].blockHash;
         require(blocks[blockHash].submitter == msg.sender); // only submitter can reply
         BlockData storage blockData = blocks[blockHash];
         for (uint i=0; i<hashes.length; ++i) {
-            blockData.rounds[start+i*step] = makeRound(hashes[i]);
+            blockData.rounds[start + i * ROUNDS_PER_CYCLE] = makeRound(hashes[i]);
         }
-        NewDataHashes(challengeId, blockHash, start, step, hashes.length);
+        NewDataHashes(challengeId, blockHash, start, hashes.length);
     }
 
     function request(bytes32 challengeId, uint round) public {
@@ -78,47 +79,46 @@ contract ScryptVerifier is ScryptVerifierData {
         uint step = round;
         bool correct = true;
         RoundData memory roundData2 = roundData;
-        for (uint i=0; i<10 && correct; ++i) {
-          step += 1;
-          if (step > 1024) {
-            sendExtra(blockData, roundData2.data[2], [
-              extra[4*i + 0],
-              extra[4*i + 1],
-              extra[4*i + 2],
-              extra[4*i + 3]
-            ]);
-          }
-          roundData2 = executeStep(blockHash, step);
-          if (roundData2.kind == 2) {
-            if (blockData.rounds[step].kind == 1) {
-              assert(blockData.rounds[step].hash == roundData2.hash);
+        for (uint i=0; i<ROUNDS_PER_CYCLE && correct; ++i) {
+            step += 1;
+            if (step > 1024) {
+                sendExtra(blockData, roundData2.data[2], [
+                  extra[4*i + 0],
+                  extra[4*i + 1],
+                  extra[4*i + 2],
+                  extra[4*i + 3]
+                ]);
             }
-            blockData.rounds[step] = roundData2;
-          } else {
-            correct = false;
-          }
+            roundData2 = executeStep(blockHash, step);
+            if (roundData2.kind == 2) {
+                if (blockData.rounds[step].kind == 1) {
+                    assert(blockData.rounds[step].hash == roundData2.hash);
+                }
+                blockData.rounds[step] = roundData2;
+            } else {
+                correct = false;
+            }
         }
         assert(correct && roundData2.hash == blockData.rounds[step].hash);
         RoundVerified(challengeId, blockHash, round);
     }
 
     function sendExtra(BlockData storage blockData, uint idx, uint[4] extra) internal {
-      // extraInput;
-      bytes32 hash;
-      idx = (idx / 256**28) % 1024;
-      RoundData storage extraInput = blockData.rounds[idx];
-      hash = sha3(extra[0], extra[1], extra[2], extra[3]);
-      if (extraInput.kind == 0) { // Round without info
-        extraInput.hash = hash;
-        extraInput.data = extra;
-        extraInput.kind = 2;
-      } else if (extraInput.kind == 1) { // Round with hash only
-        assert(hash == extraInput.hash);
-        extraInput.data = extra;
-        extraInput.kind = 2;
-      } else {
-        assert(hash == extraInput.hash);
-      }
+        bytes32 hash;
+        idx = (idx / 256**28) % 1024;
+        RoundData storage extraInput = blockData.rounds[idx];
+        hash = sha3(extra[0], extra[1], extra[2], extra[3]);
+        if (extraInput.kind == 0) { // Round without info
+            extraInput.hash = hash;
+            extraInput.data = extra;
+            extraInput.kind = 2;
+        } else if (extraInput.kind == 1) { // Round with hash only
+            assert(hash == extraInput.hash);
+            extraInput.data = extra;
+            extraInput.kind = 2;
+        } else {
+            assert(hash == extraInput.hash);
+        }
     }
 
     function runStep(bytes32 hash, uint round) public returns (bool) {
@@ -194,20 +194,20 @@ contract ScryptVerifier is ScryptVerifierData {
     }
 
     function concatenate(uint[4] _input) internal returns (bytes res) {
-      res = new bytes(4*32);
-      for (uint i=0; i<4; ++i) {
-        for (uint j=0; j<32; j+=4) {
-          res[i*32 + j + 0] = byte(bytes32(_input[i])[j + 3]);
-          res[i*32 + j + 1] = byte(bytes32(_input[i])[j + 2]);
-          res[i*32 + j + 2] = byte(bytes32(_input[i])[j + 1]);
-          res[i*32 + j + 3] = byte(bytes32(_input[i])[j + 0]);
+        res = new bytes(4*32);
+        for (uint i=0; i<4; ++i) {
+            for (uint j=0; j<32; j+=4) {
+                res[i*32 + j + 0] = byte(bytes32(_input[i])[j + 3]);
+                res[i*32 + j + 1] = byte(bytes32(_input[i])[j + 2]);
+                res[i*32 + j + 2] = byte(bytes32(_input[i])[j + 1]);
+                res[i*32 + j + 3] = byte(bytes32(_input[i])[j + 0]);
+            }
         }
-      }
     }
 
     function reverse(uint _input) internal returns (uint _output) {
         for (uint i=0; i<32; ++i) {
-          _output |= ((_input / 0x100**(31 - i)) & 0xFF) * 0x100**i;
+            _output |= ((_input / 0x100**(31 - i)) & 0xFF) * 0x100**i;
         }
     }
 

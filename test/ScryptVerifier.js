@@ -25,39 +25,24 @@ contract('ScryptVerifier1', function(accounts) {
   const blockHash = "0x0000000110c8357966576df46f3b802ca897deb7ad18b12f1c24ecff6386ebd9";
 
   const intermediateHashes = [
-    "0x9591614bf3a7831c516cf24935e4774231d981c0332ba1409acbf87cc5206f15",
-    "0xebb0cff5aec1bfd5dc5212cfd7e21a44e7b865a111116158d97834737fc20558",
-    "0x1276aa8e3c44f8c0ab4db6467b022fcb838d48463ebce5e33ca99de001a1bcd9",
-    "0x0cb62e6b9a88c155d9a5a3cb045ead9c815f748057bf8da9fbb30622ca3bdc76",
-    "0x3d09eaef10e443a18143d6fc14578859def2b3420926fd9173ca91e736f85a10",
+    "0x9591614bf3a7831c516cf24935e4774231d981c0332ba1409acbf87cc5206f15",  // 0
+    "0xebb0cff5aec1bfd5dc5212cfd7e21a44e7b865a111116158d97834737fc20558",  // 10
+    "0x1276aa8e3c44f8c0ab4db6467b022fcb838d48463ebce5e33ca99de001a1bcd9",  // 20
   ];
   const roundInput = [
+    [ ],                                                                     // 0 - Input is block header
     [
-    ],
-    [
-      "0x3bf83d92c6c8fe77dd7e99775c80f175af6835e0504763cd6133c013074bbae3",
+      "0x3bf83d92c6c8fe77dd7e99775c80f175af6835e0504763cd6133c013074bbae3",  // 10
       "0xe9fae41e8dc77d1a868c3d4aa7462c75420500869a87d1c27f3cf458ba8d7cb6",
       "0x150eba87e5cee4b485c24a008720a7f5abbf66649c0c260488728570f3cacd67",
-      "0x8f139f97850d101c52c67dae482c6af8cf5b4d650f4f5b26e551d4a1365b5ce5",
+      "0x8f139f97850d101c52c67dae482c6af8cf5b4d650f4f5b26e551d4a1365b5ce5"
     ],
     [
-      "0x57346c5d1b6fdb78f69a49fa3fd7c59d9b4a10e1d18e1b7e33563e10e5c8a5a7",
+      "0x57346c5d1b6fdb78f69a49fa3fd7c59d9b4a10e1d18e1b7e33563e10e5c8a5a7",  // 20
       "0x92c915f2b81f5a66e69837b7ab95f47880e9a4bbed3fb960d98e1b6c4172057c",
       "0xa94f89248e2b51daadda1b1120032830a9f06d0a56716e8bf0ab2bbf5e6a695f",
       "0x5043ff86d1a725b59697d61aa260eaffd48b9607425acd13dfe2722e72b4dc6d",
     ],
-    [
-      "0xb0f881157cec55f9ce37ba9395f88804616322f33b31aaaa2da136d9420732b4",
-      "0x0542e63aab40efd5e574e862ceb6a9f52e57181a442342515dbf9ca0411e0c43",
-      "0xaecd350a14c2dd173ce6dcb957cc6c76795321ddc85e921751ab7da7d42c5fad",
-      "0x99c6dcd050a1fd4e313fb394d1f12d25d2c92cdf3372cd1911fab17462c466c6",
-    ],
-    [
-      "0xce1df727ce4558962243963b8108efca29423251e1a5f91840ede735909836ea",
-      "0xa965b4cb4f9f9d19bad93682bbfe9070b586d7e1c5781ebac0c66da44f7efdcf",
-      "0x350d6352f2159e6f48d749bf8be679ce4eaaabe893be77a8e59e3ff3cf5bd508",
-      "0x96e433e2de8f9ab753efed72b4fa5ea7dea3910c0ae3802dfa9b71656b28fae6",
-    ]
   ];
 
   let scryptVerifier;
@@ -84,7 +69,7 @@ contract('ScryptVerifier1', function(accounts) {
     assert.equal(challengeData[1], blockHash, 'Block hash should match');
   });
   it("Publish hashes", async function() {
-    const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 0, 10, intermediateHashes, { from: submitter });
+    const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 0, intermediateHashes, { from: submitter });
     const { challengeId: thisChallengeId } = getNewDataHashesArgs(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
@@ -123,7 +108,6 @@ contract('ScryptVerifier2', function(accounts) {
     "0xd042ad6882ceb163d869ddab4314651f0fe6a4e2b0764e9e699af4aab12651b8",  // 1025
     "0x888e3cb1be7fd36c5200442cbe71a053e4d13acc7dae95c4bfe1aba05e98ff3d",  // 1035
     "0x1cb59ce3553315fc49d0bbe260c8eb6916ca20959660691aa94bf30d3d347362",  // 1045
-    "0x3f5ffbf643f55eb5332e61ac2698ca921f5296dd570c5517e989b31c14d77de9"   // 1055
   ];
   const roundInput = [
     [
@@ -144,15 +128,10 @@ contract('ScryptVerifier2', function(accounts) {
       "0x855af78ed5fea14a735be367ec033069e65b5aefd4163a6c644aee6d5a6abf22",
       "0xfa0d0f91d51b541c3f62a5f64cde598eeff8de03ca33c51306653550ca300a38"
     ],
-    [
-      "0xc0277d9f1f9c7bc20ea2f8d57072f68e7496d6a4c740de947dc7ff97c7bc9770",  // 1055
-      "0x7fc0219db1a55c4ee61eeb386f1901671647bdb0925eb20ada83b448198a49be",
-      "0x85c494a241d69e605a735e0d7f11696cabb5c1ab80ac048b3882eb84c5a92cb2",
-      "0x2e7ad328346bd237b96437d54b723e4692351c7126c071a8729a45ec5ab05c4c"
-    ]
   ];
   const extraInputs = [
-    [ // 482
+    [ // 1025
+      // 482
       "0x58d595ecbe8a23d6fa19f2e190a4f28cab9d3f122a4d5fcd00d0707ad9ba0821",
       "0xed6ddce2d42d8c62150c81a5d45a6a66994e538f2652e199346d34e792572722",
       "0x6692b9e608bf2b80424db2ce5cbd448d0edb8b2f2f0206a0d57f80ebc79aefb0",
@@ -201,9 +180,9 @@ contract('ScryptVerifier2', function(accounts) {
       "0x6fb087c64b53b6b38c5cd9d3f9322a10bd39202bc7f3196123ce0ca66ba6ca20",
       "0xd3d3a1ae6fcd2eba46a74f9ebbd6f361066bc2a8eea2e2d4e119c286d584a46b",
       "0x84545c77cc0a9dc23e114dbcb6c423c2e9860cb710f9a2ddce1f4ea581193e86",
-      "0x2393fc5642750227cc758c74eceb004799cf7d1121ac8c9548a7ab061337d642"
+      "0x2393fc5642750227cc758c74eceb004799cf7d1121ac8c9548a7ab061337d642",
     ],
-    [
+    [ // 1035
       // 460
       "0xbba42e21bb56f18f7a5422d9f824adaf5867db65c857b6d5298700f16ca83401",
       "0x69bcb3ac17cadeaa5d6d46cedd62f316a4bc039cf0a79f47aa4e1ec2add66ed4",
@@ -249,7 +228,7 @@ contract('ScryptVerifier2', function(accounts) {
       "0xd2c1e9b28dc3d3f0f7b926a81749029f43197c26844f4bcbaa27fe14fc3398ee",
       "0x864d560a9d553eb483e958d515b35d882125d4f58d215463f9a0e49220e85a41",
       "0x804662a6eabcf31335642ddd5dd51ff96d56ac022be1cebeb482d847625a2a0d",
-      //
+      // 819
       "0xd2aac1fe3166b80f8b967e02a0a6d6c6031c3d3829aa7fd8c0253b0f0b8c2906",
       "0xf76e36b45f8cea470bd87a5174009b93ae96b0c33fbd82531646d03e79ef9c96",
       "0x4f19fcd6959747a6426136e6b023cd7e1957a9c59079f6176cc06fe05ba73152",
@@ -281,7 +260,7 @@ contract('ScryptVerifier2', function(accounts) {
     assert.equal(challengeData[1], blockHash, 'Block hash should match');
   });
   it("Publish hashes", async function() {
-    const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 1025, 10, intermediateHashes, { from: submitter });
+    const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 1025, intermediateHashes, { from: submitter });
     const { challengeId: thisChallengeId } = getNewDataHashesArgs(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
