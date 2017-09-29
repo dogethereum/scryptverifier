@@ -49,9 +49,46 @@ function waitNewRequest(blockHash) {
   });
 }
 
+class SubmitAgent {
+  constructor(scryptVerifier) {
+    super.constructor();
+    this.scryptVerifier = scryptVerifier;
+    const executionData = require('./run.json');
+    this.setupEvents();
+  }
+
+  setupEvents() {
+    this.newChallengeEvent = this.scryptVerifier.NewChallenge();
+    this.newChallengeEvent.watch((err, result) => {
+      if (!err) {
+        this.newChallenge(result);
+      }
+    });
+    this.NewRequestEvent = this.scryptVerifier.NewRequest();
+    this.NewRequestEvent.watch((err, result) => {
+      if (!err) {
+        this.newRequest(result);
+      }
+    });
+  }
+
+  newChallenge(challengeData) {
+    console.log(`New challenge: ${JSON.stringify(challengeData, null, '  ')}`);
+  }
+
+  newRequest(requestData) {
+    console.log(`New request: ${JSON.stringify(requestData, null, '  ')}`);
+  }
+}
+
+
 async function main() {
   try {
     scryptVerifier = await ScryptVerifier.deployed();
+
+    const submitAgent = new SubmitAgent(scryptVerifier);
+
+    return;
 
     const executionData = require('./run.json');
 
@@ -82,15 +119,15 @@ async function main() {
       //const gasEstimate = await scryptVerifier.sendHashes.estimateGas(challengeId, start, hashes, { from: submitter });
       //console.log(`About to send hashes: From ${start}, length: ${hashes.length}, gas: ${gasEstimate.valueOf()}`);
       const sendHashes = await scryptVerifier.sendHashes(challengeId, start, hashes, { from: submitter });
-      console.log(`Send hashes: From 0, length: ${hashes.length}, at: ${sendHashes.tx}`);
+      console.log(`Send hashes: From ${start}, length: ${hashes.length}, at: ${sendHashes.tx}`);
     }
 
     while (true) {
       const requestTx = await waitNewRequest(blockHash);
       //console.log(`New request: ${JSON.stringify(requestTx, null, '  ')}`);
-      const { round } = requestTx.args;
+      const round = parseInt(requestTx.args.round, 10);
       console.log(`New request: blockHash: ${blockHash}, round ${round}`);
-      console.log(`----New request: blockHash: ${blockHash}, round ${typeof round}`);
+      //console.log(`----New request: blockHash: ${blockHash}, round ${typeof round}`);
       if (round < 1024) {
         const data = [];
         if (round !== 0) {

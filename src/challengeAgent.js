@@ -71,9 +71,45 @@ async function Sleep(timeout) {
   });
 }
 
+class ChallengeAgent {
+  constructor(scryptVerifier) {
+    super.constructor();
+    this.scryptVerifier = scryptVerifier;
+    this.setupEvents();
+  }
+
+  setupEvents() {
+    this.newBlockEvent = this.scryptVerifier.NewBlock();
+    this.newBlockEvent.watch((err, result) => {
+      if (!err) {
+        this.newBlock(result);
+      }
+    });
+    this.newDataHashesEvent = this.scryptVerifier.NewDataHashes();
+    this.newDataHashesEvent.watch((err, result) => {
+      if (!err) {
+        this.newDataHashes(result);
+      }
+    });
+  }
+
+  newBlock(blockData) {
+    console.log(`New block: ${JSON.stringify(blockData, null, '  ')}`);
+  }
+
+  newDataHashes(dataHashes) {
+    console.log(`New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
+  }
+}
+
+
 async function main() {
   try {
     scryptVerifier = await ScryptVerifier.deployed();
+
+    const challengeAgent = new ChallengeAgent(scryptVerifier);
+
+    return;
 
     const executionData = require('./run.json');
 
@@ -93,16 +129,21 @@ async function main() {
     const challengeId = challengeTx.logs.filter(lg => lg.event === 'NewChallenge')[0].args.challengeId;
     console.log(`Challenge id: ${JSON.stringify(challengeId, null, '  ')}`);
 
-    // FIXME: This should listen for the final event only
-    await Sleep(15000);
+    let hashes = 0;
+    while (hashes < 200) {
+      const dataHashes = await waitNewDataHashes(challengeId);
+      //console.log(`New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
+      const { start, length } = dataHashes.args;
+      console.log(`New data hashes: start: ${start}, length: ${length}, tx: ${dataHashes.transactionHash}`);
+      hashes += parseInt(length, 10);
+    }
 
-    const dataHashes = await waitNewDataHashes(challengeId);
-    //console.log(`New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
+    //const { start, length } = dataHashes.args;
+    //console.log(`New data hashes: start: ${start}, length: ${length}`);
 
-    const { start, length } = dataHashes.args;
-    console.log(`New data hashes: start: ${start}, length: ${length}`);
+    await Sleep(2000);
 
-    for (let k=0; k<length; ++k) {
+    for (let k=0; k<hashes; ++k) {
       const request = await scryptVerifier.request(challengeId, k * 10, { from: challenger });
       //console.log(`Send request: ${JSON.stringify(request, null, '  ')}`);
       console.log(`Send request: ${request.tx}, waiting verification`);

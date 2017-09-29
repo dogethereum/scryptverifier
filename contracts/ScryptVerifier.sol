@@ -69,8 +69,11 @@ contract ScryptVerifier is ScryptVerifierData {
         require(blockData.requests[round].challenger != 0); // existing request
         RoundData storage roundData = blockData.rounds[round];
         require(0 !=  roundData.kind);
-        bytes32 hash = sha3(data[0], data[1], data[2], data[3]);
-        require(hash ==  roundData.hash);
+        bytes32 hash;
+        if (round != 0) {
+          hash = sha3(data[0], data[1], data[2], data[3]);
+          require(hash ==  roundData.hash);
+        }
         blockData.requests[round].answered = true;
         roundData.data = data;
         roundData.kind = 2;
