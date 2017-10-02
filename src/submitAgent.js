@@ -85,7 +85,7 @@ class SubmitAgent extends BaseAgent {
     const blockData = await this.getBlock(this.blockHash);
 
     if (blockData[2] !== this.blockHash) {
-      console.log(`Block data: ${JSON.stringify(blockData, null, '  ')}`);
+      // console.log(`Block data: ${JSON.stringify(blockData, null, '  ')}`);
       const submit = await this.submitBlock(this.blockHash, this.blockHeader, 0, { from: this.submitter });
       console.log(`Submit: ${submit.tx}`);
     } else {
@@ -115,11 +115,36 @@ class SubmitAgent extends BaseAgent {
     }
   }
 
-  newRequest(requestData) {
-    console.log(`New request: ${JSON.stringify(requestData, null, '  ')}`);
+  async newRequest(requestData) {
+    // console.log(`Got request: ${JSON.stringify(requestData, null, '  ')}`);
+    const blockHash = requestData.args.blockHash;
+    const challengeId = requestData.args.challengeId;
+    const round = parseInt(requestData.args.round);
+    if (blockHash === this.blockHash) {
+      console.log(`New request: ${challengeId} for round ${round}`);
+      if (round < 1024) {
+        const data = [];
+        if (round !== 0) {
+          for (let i=0; i<4; ++i) {
+            data.push(`0x${this.scryptRun[round].input.slice(i*64, i*64+64)}`);
+          }
+        } else {
+          data.push('0x0');
+          data.push('0x0');
+          data.push('0x0');
+          data.push('0x0');
+        }
+        console.log(`Data: ${JSON.stringify(data, null, '  ')}`);
+        const sendRoundTx = await this.sendRound(challengeId, round, data, [], { from: this.submitter });
+        console.log(`Result: ${JSON.stringify(sendRoundTx, null, '  ')}`);
+      }
+    }
   }
 
   newDataHashes(dataHashes) {
+  }
+
+  newBlock(blockData) {
   }
 }
 
