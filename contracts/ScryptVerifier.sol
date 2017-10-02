@@ -39,6 +39,7 @@ contract ScryptVerifier is ScryptVerifierData {
         NewChallenge(challengeId, blockHash);
     }
 
+    //FIXME verify hashes do not exist yet 
     function sendHashes(bytes32 challengeId, uint start, bytes32[] hashes) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
         bytes32 blockHash = challenges[challengeId].blockHash;
