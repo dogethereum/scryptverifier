@@ -12,10 +12,12 @@ contract ScryptVerifier is ScryptVerifierData {
 
     event NewBlock(bytes32 indexed blockHash);
     event NewChallenge(bytes32 indexed challengeId, bytes32 indexed blockHash);
+    event ExistingDataHash(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start);
     event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start, uint length);
+    event ExistingRequest(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
     event NewRequest(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
     event NewDataArrived(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
-    event RoundVerified(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
+    event RoundVerified(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round, uint last);
 
     uint public uno;
     bytes32 public dos;
@@ -39,16 +41,19 @@ contract ScryptVerifier is ScryptVerifierData {
         NewChallenge(challengeId, blockHash);
     }
 
-    //FIXME verify hashes do not exist yet 
     function sendHashes(bytes32 challengeId, uint start, bytes32[] hashes) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
         bytes32 blockHash = challenges[challengeId].blockHash;
         require(blocks[blockHash].submitter == msg.sender); // only submitter can reply
         BlockData storage blockData = blocks[blockHash];
-        for (uint i=0; i<hashes.length; ++i) {
-            blockData.rounds[start + i * ROUNDS_PER_CYCLE] = makeRound(hashes[i]);
+        if (blockData.rounds[start].kind != 0) {
+            ExistingDataHash(challengeId, blockHash, start);
+        } else {
+            for (uint i=0; i<hashes.length; ++i) {
+                blockData.rounds[start + i * ROUNDS_PER_CYCLE] = makeRound(hashes[i]);
+            }
+            NewDataHashes(challengeId, blockHash, start, hashes.length);
         }
-        NewDataHashes(challengeId, blockHash, start, hashes.length);
     }
 
     function request(bytes32 challengeId, uint round) public {
@@ -59,6 +64,8 @@ contract ScryptVerifier is ScryptVerifierData {
         if (blockData.requests[round].challenger == 0) {
             blockData.requests[round] = makeRequest(msg.sender, round);
             NewRequest(challengeId, challengeData.blockHash, round);
+        } else {
+            ExistingRequest(challengeId, challengeData.blockHash, round);
         }
     }
 
@@ -71,9 +78,18 @@ contract ScryptVerifier is ScryptVerifierData {
         RoundData storage roundData = blockData.rounds[round];
         require(0 !=  roundData.kind);
         bytes32 hash;
+        RoundData memory roundData2;
         if (round != 0) {
-          hash = sha3(data[0], data[1], data[2], data[3]);
-          require(hash ==  roundData.hash);
+            hash = sha3(data[0], data[1], data[2], data[3]);
+            require(hash ==  roundData.hash);
+        } else {
+          roundData2 = executeStep(blockHash, 0);
+            if (roundData2.kind == 2) {
+                assert(data[0] == roundData2.data[0]);
+                assert(data[1] == roundData2.data[1]);
+                assert(data[2] == roundData2.data[2]);
+                assert(data[3] == roundData2.data[3]);
+            }
         }
         blockData.requests[round].answered = true;
         roundData.data = data;
@@ -82,15 +98,16 @@ contract ScryptVerifier is ScryptVerifierData {
 
         uint step = round;
         bool correct = true;
-        RoundData memory roundData2 = roundData;
-        for (uint i=0; i<ROUNDS_PER_CYCLE && correct; ++i) {
+        uint numRounds = round != 1020 ? ROUNDS_PER_CYCLE : 3;
+        roundData2 = roundData;
+        for (uint i=0; i<numRounds && correct; ++i) {
             step += 1;
-            if (step > 1024) {
+            if (step >= 1024) {
                 sendExtra(blockData, roundData2.data[2], [
-                  extra[4*i + 0],
-                  extra[4*i + 1],
-                  extra[4*i + 2],
-                  extra[4*i + 3]
+                    extra[4*i+0],
+                    extra[4*i+1],
+                    extra[4*i+2],
+                    extra[4*i+3]
                 ]);
             }
             roundData2 = executeStep(blockHash, step);
@@ -104,7 +121,7 @@ contract ScryptVerifier is ScryptVerifierData {
             }
         }
         assert(correct && roundData2.hash == blockData.rounds[step].hash);
-        RoundVerified(challengeId, blockHash, round);
+        RoundVerified(challengeId, blockHash, round, step - 1);
     }
 
     function sendExtra(BlockData storage blockData, uint idx, uint[4] extra) internal {
@@ -145,7 +162,9 @@ contract ScryptVerifier is ScryptVerifierData {
 
         if (step == 0) {
             bytes32[4] memory temp;
-            temp = KeyDeriv.pbkdf2(blockData.input, blockData.input, 128);
+            bytes memory temp4 = swap4bytes(blockData.input);
+            temp = KeyDeriv.pbkdf2(temp4, temp4, 128);
+            //temp = KeyDeriv.pbkdf2(blockData.input, blockData.input, 128);
             result = b32enc(temp);
         } else if (step <= 1024) {
             round = blockData.rounds[step - 1];
@@ -212,6 +231,16 @@ contract ScryptVerifier is ScryptVerifierData {
     function reverse(uint _input) internal returns (uint _output) {
         for (uint i=0; i<32; ++i) {
             _output |= ((_input / 0x100**(31 - i)) & 0xFF) * 0x100**i;
+        }
+    }
+
+    function swap4bytes(bytes input) internal returns (bytes output) {
+        output = new bytes(input.length);
+        for (uint i=0; i<input.length; i+=4) {
+          output[i + 0] = input[i + 3];
+          output[i + 1] = input[i + 2];
+          output[i + 2] = input[i + 1];
+          output[i + 3] = input[i + 0];
         }
     }
 
