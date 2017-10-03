@@ -106,6 +106,27 @@ class SubmitAgent extends BaseAgent {
     }
   }
 
+  async replyRequest(challengeId, round) {
+    if (round < 1024) {
+      const data = [];
+      if (round !== 0) {
+        for (let i=0; i<4; ++i) {
+          data.push(`0x${this.scryptRun[round].input.slice(i*64, i*64+64)}`);
+        }
+      } else {
+        data.push('0x0');
+        data.push('0x0');
+        data.push('0x0');
+        data.push('0x0');
+      }
+      console.log(`Data: ${JSON.stringify(data, null, '  ')}`);
+      const sendRoundTx = await this.sendRound(challengeId, round, data, [], { from: this.submitter });
+      console.log(`Result: ${JSON.stringify(sendRoundTx, null, '  ')}`);
+    } else {
+      console.log(`Cannot send reply to ${round} yet`)
+    }
+  }
+
   newChallenge(challengeData) {
     // console.log(`New challenge ${JSON.stringify(challengeData, null, '  ')}`);
     const { blockHash, challengeId } = challengeData.args;
@@ -115,29 +136,14 @@ class SubmitAgent extends BaseAgent {
     }
   }
 
-  async newRequest(requestData) {
-    // console.log(`Got request: ${JSON.stringify(requestData, null, '  ')}`);
+  newRequest(requestData) {
+    console.log(`Got request: ${JSON.stringify(requestData, null, '  ')}`);
     const blockHash = requestData.args.blockHash;
     const challengeId = requestData.args.challengeId;
     const round = parseInt(requestData.args.round);
     if (blockHash === this.blockHash) {
       console.log(`New request: ${challengeId} for round ${round}`);
-      if (round < 1024) {
-        const data = [];
-        if (round !== 0) {
-          for (let i=0; i<4; ++i) {
-            data.push(`0x${this.scryptRun[round].input.slice(i*64, i*64+64)}`);
-          }
-        } else {
-          data.push('0x0');
-          data.push('0x0');
-          data.push('0x0');
-          data.push('0x0');
-        }
-        console.log(`Data: ${JSON.stringify(data, null, '  ')}`);
-        const sendRoundTx = await this.sendRound(challengeId, round, data, [], { from: this.submitter });
-        console.log(`Result: ${JSON.stringify(sendRoundTx, null, '  ')}`);
-      }
+      this.replyRequest(challengeId, round);
     }
   }
 

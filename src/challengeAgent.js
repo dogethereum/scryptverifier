@@ -133,7 +133,7 @@ class ChallengeAgent extends BaseAgent {
       if (this.numHashes > 200) {
         console.log(`Got hashes ${this.numHashes}`);
         const requestTx = await this.requestInput(this.challengeId, 10, { from: this.challenger });
-        console.log(`Send request ${JSON.stringify(requestTx.tx, null, '  ')}`);
+        console.log(`Send request ${JSON.stringify(requestTx, null, '  ')}`);
       }
     }
   }

@@ -35,9 +35,11 @@ class BaseAgent {
       try {
         if (!err) {
           this.newChallenge(result);
+        } else {
+          console.log(`Error: ${err} ${err.stack}`);
         }
       } catch (ex) {
-        console.log(`${ex}`);
+        console.log(`Error: ${ex} ${ex.stack}`);
       }
     });
     this.newRequestEvent = this.scryptVerifier.NewRequest();
@@ -45,9 +47,11 @@ class BaseAgent {
       try {
         if (!err) {
           this.newRequest(result);
+        } else {
+          console.log(`Error: ${err} ${err.stack}`);
         }
       } catch (ex) {
-        console.log(`${ex}`);
+        console.log(`Error: ${ex} ${ex.stack}`);
       }
     });
     this.newBlockEvent = this.scryptVerifier.NewBlock();
@@ -55,9 +59,11 @@ class BaseAgent {
       try {
         if (!err) {
           this.newBlock(result);
+        } else {
+          console.log(`Error: ${err} ${err.stack}`);
         }
       } catch (ex) {
-        console.log(`${ex}`);
+        console.log(`Error: ${ex} ${ex.stack}`);
       }
     });
     this.newDataHashesEvent = this.scryptVerifier.NewDataHashes();
@@ -65,9 +71,11 @@ class BaseAgent {
       try {
         if (!err) {
           this.newDataHashes(result);
+        } else {
+          console.log(`Error: ${err} ${err.stack}`);
         }
       } catch (ex) {
-        console.log(`${ex}`);
+        console.log(`Error: ${ex} ${ex.stack}`);
       }
     });
   }
