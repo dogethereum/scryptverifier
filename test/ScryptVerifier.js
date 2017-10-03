@@ -1,21 +1,6 @@
-var ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
+const ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
+const utils = require('../src/utils');
 
-
-function findLogs(receipt, logName) {
-  const logs = receipt.logs.filter(lg => lg.event === logName);
-  return logs.length > 0 ? logs[0] : {};
-}
-
-function getLogArgs(receipt, logName) {
-  const { args } = findLogs(receipt, logName);
-  return args;
-}
-
-const getChallengeIdArgs = receipt => getLogArgs(receipt, 'NewChallenge');
-const getNewDataHashesArgs = receipt => getLogArgs(receipt, 'NewDataHashes');
-const getNewRequestArgs = receipt => getLogArgs(receipt, 'NewRequest');
-const getNewDataArrivedArgs = receipt => getLogArgs(receipt, 'NewDataArrived');
-const getRoundVerifiedArgs = receipt => getLogArgs(receipt, 'RoundVerified');
 
 contract('ScryptVerifier1', function(accounts) {
   const submitter = accounts[0];
@@ -62,7 +47,7 @@ contract('ScryptVerifier1', function(accounts) {
   });
   it("Make a challenge", async function() {
     const challengeTx = await scryptVerifier.challenge(blockHash, { from: challenger });
-    const { challengeId: thisChallengeId } = getChallengeIdArgs(challengeTx);
+    const { challengeId: thisChallengeId } = utils.parseNewChallenge(challengeTx);
     challengeId = thisChallengeId;
     assert.isOk(challengeId, 'New challenge created');
     const challengeData = await scryptVerifier.challenges.call(challengeId);
@@ -70,7 +55,7 @@ contract('ScryptVerifier1', function(accounts) {
   });
   it("Publish hashes", async function() {
     const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 0, intermediateHashes, { from: submitter });
-    const { challengeId: thisChallengeId } = getNewDataHashesArgs(sendHashesTx);
+    const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
       const roundData = await scryptVerifier.getRoundData.call(blockHash, 10 * i);
@@ -79,13 +64,13 @@ contract('ScryptVerifier1', function(accounts) {
   });
   it("Request input", async function() {
     const requestTx = await scryptVerifier.request(challengeId, 10, { from: challenger });
-    const { challengeId: thisChallengeId, round } = getNewRequestArgs(requestTx);
+    const { challengeId: thisChallengeId, round } = utils.parseNewRequest(requestTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
     assert.equal(round, 10, 'Required round should match');
   });
   it("Send input", async function() {
     const sendDataTx = await scryptVerifier.sendData(challengeId, 10, roundInput[1], [], { from: submitter });
-    const { challengeId: thisChallengeId, round } = getNewDataArrivedArgs(sendDataTx);
+    const { challengeId: thisChallengeId, round } = utils.parseNewDataArrived(sendDataTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
     assert.equal(round, 10, 'Required round should match');
     const roundData = await scryptVerifier.getRoundData.call(blockHash, 10);
@@ -253,7 +238,7 @@ contract('ScryptVerifier2', function(accounts) {
   });
   it("Make a challenge", async function() {
     const challengeTx = await scryptVerifier.challenge(blockHash, { from: challenger });
-    const { challengeId: thisChallengeId } = getChallengeIdArgs(challengeTx);
+    const { challengeId: thisChallengeId } = utils.parseNewChallenge(challengeTx);
     challengeId = thisChallengeId;
     assert.isOk(challengeId, 'New challenge created');
     const challengeData = await scryptVerifier.challenges.call(challengeId);
@@ -261,7 +246,7 @@ contract('ScryptVerifier2', function(accounts) {
   });
   it("Publish hashes", async function() {
     const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 1025, intermediateHashes, { from: submitter });
-    const { challengeId: thisChallengeId } = getNewDataHashesArgs(sendHashesTx);
+    const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
       const roundData = await scryptVerifier.getRoundData.call(blockHash, 1025 + 10 * i);
@@ -270,13 +255,13 @@ contract('ScryptVerifier2', function(accounts) {
   });
   it("Request input", async function() {
     const requestTx = await scryptVerifier.request(challengeId, 1035, { from: challenger });
-    const { challengeId: thisChallengeId, round } = getNewRequestArgs(requestTx);
+    const { challengeId: thisChallengeId, round } = utils.parseNewRequest(requestTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
     assert.equal(round, 1035, 'Required round should match');
   });
   it("Send input", async function() {
     const sendDataTx = await scryptVerifier.sendData(challengeId, 1035, roundInput[1], extraInputs[1], { from: submitter });
-    const { challengeId: thisChallengeId, round } = getNewDataArrivedArgs(sendDataTx);
+    const { challengeId: thisChallengeId, round } = utils.parseNewDataArrived(sendDataTx);
     assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
     assert.equal(round, 1035, 'Required round should match');
     const roundData = await scryptVerifier.getRoundData.call(blockHash, 1035);
