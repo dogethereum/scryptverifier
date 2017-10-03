@@ -106,14 +106,20 @@ class ChallengeAgent extends BaseAgent {
   async makeChallenge() {
     if (!this.challengeId) {
       console.log(`Making challenge..`);
-      this.challengeId = await this.challenge(this.blockHash, { from: this.challenger });
+      const { challengeId } = await this.sendChallenge(this.blockHash, { from: this.challenger });
+      this.challengeId = challengeId;
       console.log(`Got new challenge id ${this.challengeId}`);
     } else {
       console.log(`Challenge already in progress ${this.challengeId}`);
     }
   }
 
-  newBlock(blockData) {
+  async makeRequest(round) {
+    const requestTx = await this.sendRequest(this.challengeId, round, { from: this.challenger });
+    console.log(`Send request ${JSON.stringify(requestTx, null, '  ')}`);
+  }
+
+  onNewBlock(blockData) {
     const blockHash = blockData.args.blockHash;
     console.log(`New block: ${JSON.stringify(blockHash, null, '  ')}`);
 
@@ -122,7 +128,10 @@ class ChallengeAgent extends BaseAgent {
     }
   }
 
-  async newDataHashes(dataHashes) {
+  onNewChallenge(challengeData) {
+  }
+
+  onNewDataHashes(dataHashes) {
     // console.log(`New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
     const blockHash = dataHashes.args.blockHash;
     const challengeId = dataHashes.args.challengeId;
@@ -132,16 +141,16 @@ class ChallengeAgent extends BaseAgent {
       this.numHashes += length;
       if (this.numHashes > 200) {
         console.log(`Got hashes ${this.numHashes}`);
-        const requestTx = await this.requestInput(this.challengeId, 10, { from: this.challenger });
-        console.log(`Send request ${JSON.stringify(requestTx, null, '  ')}`);
+        this.makeRequest(10);
       }
     }
   }
 
-  newChallenge(challengeData) {
+  onNewRequest(requestData) {
   }
 
-  newRequest(requestData) {
+  onRoundVerified(roundResult) {
+    console.log(`RoundVerified ${JSON.stringify(roundResult, null, '  ')}`);
   }
 }
 

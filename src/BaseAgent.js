@@ -1,4 +1,7 @@
 const fs = require('fs');
+
+const utils = require('./utils');
+
 // const Contract = require('truffle-contract');
 // const Web3 = require('web3');
 // const makeScryptVerifier = require('./ScryptVerifier');
@@ -34,7 +37,7 @@ class BaseAgent {
     this.newChallengeEvent.watch((err, result) => {
       try {
         if (!err) {
-          this.newChallenge(result);
+          this.onNewChallenge(result);
         } else {
           console.log(`Error: ${err} ${err.stack}`);
         }
@@ -46,7 +49,7 @@ class BaseAgent {
     this.newRequestEvent.watch((err, result) => {
       try {
         if (!err) {
-          this.newRequest(result);
+          this.onNewRequest(result);
         } else {
           console.log(`Error: ${err} ${err.stack}`);
         }
@@ -58,7 +61,7 @@ class BaseAgent {
     this.newBlockEvent.watch((err, result) => {
       try {
         if (!err) {
-          this.newBlock(result);
+          this.onNewBlock(result);
         } else {
           console.log(`Error: ${err} ${err.stack}`);
         }
@@ -70,7 +73,19 @@ class BaseAgent {
     this.newDataHashesEvent.watch((err, result) => {
       try {
         if (!err) {
-          this.newDataHashes(result);
+          this.onNewDataHashes(result);
+        } else {
+          console.log(`Error: ${err} ${err.stack}`);
+        }
+      } catch (ex) {
+        console.log(`Error: ${ex} ${ex.stack}`);
+      }
+    });
+    this.roundVerifiedEvent = this.scryptVerifier.RoundVerified();
+    this.roundVerifiedEvent.watch((err, result) => {
+      try {
+        if (!err) {
+          this.onRoundVerified(result);
         } else {
           console.log(`Error: ${err} ${err.stack}`);
         }
@@ -93,10 +108,9 @@ class BaseAgent {
     this.blockHash = `0x${this.scryptRun[2049].output}`;
   }
 
-  async challenge(blockHash, options) {
+  async sendChallenge(blockHash, options) {
     const challengeTx = await this.scryptVerifier.challenge(blockHash, options);
-    const challengeId = challengeTx.logs.filter(lg => lg.event === 'NewChallenge')[0].args.challengeId;
-    return challengeId;
+    return utils.parseNewChallenge(challengeTx);
   }
 
   getBlock(blockHash) {
@@ -111,8 +125,10 @@ class BaseAgent {
     return this.scryptVerifier.sendHashes(challengeId, start, hashes, options);
   }
 
-  requestInput(challengeId, round, options) {
-    return this.scryptVerifier.request(challengeId, round, options);
+  async sendRequest(challengeId, round, options) {
+    const requestTx = await this.scryptVerifier.request(challengeId, round, options);
+    console.log(`SendRequest: ${JSON.stringify(requestTx, null, '  ')}`);
+    return utils.parseNewRequest(requestTx);
   }
 
   sendRound(challengeId, round, data, extraData, options) {
@@ -120,20 +136,24 @@ class BaseAgent {
     return this.scryptVerifier.sendData(challengeId, 10, data, [], options);
   }
 
-  newChallenge(challengeData) {
+  onNewChallenge(challengeData) {
     console.log(`BA: New challenge: ${JSON.stringify(challengeData, null, '  ')}`);
   }
 
-  newRequest(requestData) {
+  onNewRequest(requestData) {
     console.log(`BA: New request: ${JSON.stringify(requestData, null, '  ')}`);
   }
 
-  newBlock(blockData) {
+  onNewBlock(blockData) {
     console.log(`BA: New block: ${JSON.stringify(blockData, null, '  ')}`);
   }
 
-  newDataHashes(dataHashes) {
+  onNewDataHashes(dataHashes) {
     console.log(`BA: New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
+  }
+
+  onRoundVerified(roundResult) {
+    console.log(`BA: New data hashes: ${JSON.stringify(roundResult, null, '  ')}`);
   }
 }
 

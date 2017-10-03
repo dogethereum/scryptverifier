@@ -127,7 +127,10 @@ class SubmitAgent extends BaseAgent {
     }
   }
 
-  newChallenge(challengeData) {
+  onNewBlock(blockData) {
+  }
+
+  onNewChallenge(challengeData) {
     // console.log(`New challenge ${JSON.stringify(challengeData, null, '  ')}`);
     const { blockHash, challengeId } = challengeData.args;
     if (blockHash === this.blockHash) {
@@ -136,7 +139,10 @@ class SubmitAgent extends BaseAgent {
     }
   }
 
-  newRequest(requestData) {
+  onNewDataHashes(dataHashes) {
+  }
+
+  onNewRequest(requestData) {
     console.log(`Got request: ${JSON.stringify(requestData, null, '  ')}`);
     const blockHash = requestData.args.blockHash;
     const challengeId = requestData.args.challengeId;
@@ -145,12 +151,6 @@ class SubmitAgent extends BaseAgent {
       console.log(`New request: ${challengeId} for round ${round}`);
       this.replyRequest(challengeId, round);
     }
-  }
-
-  newDataHashes(dataHashes) {
-  }
-
-  newBlock(blockData) {
   }
 }
 
