@@ -98,11 +98,11 @@ contract ScryptVerifier is ScryptVerifierData {
 
         uint step = round;
         bool correct = true;
-        uint numRounds = round != 1020 ? ROUNDS_PER_CYCLE : 3;
+        uint numRounds = round != 1020 ? ROUNDS_PER_CYCLE : 4;
         roundData2 = roundData;
         for (uint i=0; i<numRounds && correct; ++i) {
             step += 1;
-            if (step >= 1024) {
+            if (step > 1024) {
                 sendExtra(blockData, roundData2.data[2], [
                     extra[4*i+0],
                     extra[4*i+1],
@@ -120,8 +120,8 @@ contract ScryptVerifier is ScryptVerifierData {
                 correct = false;
             }
         }
-        assert(correct && roundData2.hash == blockData.rounds[step].hash);
-        RoundVerified(challengeId, blockHash, round, step - 1);
+        assert(correct);
+        RoundVerified(challengeId, blockHash, round, step);
     }
 
     function sendExtra(BlockData storage blockData, uint idx, uint[4] extra) internal {
