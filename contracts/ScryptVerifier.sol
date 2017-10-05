@@ -98,11 +98,18 @@ contract ScryptVerifier is ScryptVerifierData {
 
         uint step = round;
         bool correct = true;
-        uint numRounds = round != 1020 ? ROUNDS_PER_CYCLE : 4;
+        uint numRounds;
+        if (round == 1020) {
+          numRounds = 4;
+        } else if (round == 2044) {
+          numRounds = 5;
+        } else {
+          numRounds = ROUNDS_PER_CYCLE;
+        }
         roundData2 = roundData;
         for (uint i=0; i<numRounds && correct; ++i) {
             step += 1;
-            if (step > 1024) {
+            if (step > 1024 && step <= 2048) {
                 sendExtra(blockData, roundData2.data[2], [
                     extra[4*i+0],
                     extra[4*i+1],
@@ -154,6 +161,7 @@ contract ScryptVerifier is ScryptVerifierData {
     function executeStep(bytes32 _hash, uint step) internal returns (RoundData) {
         uint[4] memory result;
         RoundData memory round;
+        bytes memory temp4;
 
         BlockData storage blockData = blocks[_hash];
         if (blockData.hash != _hash) {
@@ -162,7 +170,7 @@ contract ScryptVerifier is ScryptVerifierData {
 
         if (step == 0) {
             bytes32[4] memory temp;
-            bytes memory temp4 = swap4bytes(blockData.input);
+            temp4 = swap4bytes(blockData.input);
             temp = KeyDeriv.pbkdf2(temp4, temp4, 128);
             //temp = KeyDeriv.pbkdf2(blockData.input, blockData.input, 128);
             result = b32enc(temp);
@@ -195,7 +203,8 @@ contract ScryptVerifier is ScryptVerifierData {
                 return makeRoundWithoutData(5);
             }
             bytes memory salt = concatenate(round.data);
-            bytes32[4] memory temp3 = KeyDeriv.pbkdf2(blockData.input, salt, 32);
+            temp4 = swap4bytes(blockData.input);
+            bytes32[4] memory temp3 = KeyDeriv.pbkdf2(temp4, salt, 32);
             bytes32 output = bytes32(reverse(uint(temp3[0])));
             result[0] = uint(output);
         } else {
