@@ -1,13 +1,11 @@
 const ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
 const utils = require('../src/utils');
 
-
-contract('ScryptVerifier1', function(accounts) {
+contract('ScryptVerifier 1st half', function(accounts) {
   const submitter = accounts[0];
   const challenger = accounts[1];
 
   const blockHeader = "0x00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01";
-  // const blockHeader = "0x01000000f615f7ce3b4fc6b8f61e8f89aedb1d0852507650533a9e3b10b9bbcc30639f279fcaa86746e1ef52d3edb3c4ad8259920d509bd073605c9bf1d59983752a6b06b817bb4ea78e011d012d59d4";
   const blockHash = "0x0000000110c8357966576df46f3b802ca897deb7ad18b12f1c24ecff6386ebd9";
 
   const intermediateHashes = [
@@ -163,7 +161,7 @@ contract('ScryptVerifier1', function(accounts) {
 
 });
 
-contract('ScryptVerifier2', function(accounts) {
+contract('ScryptVerifier 2nd half', function(accounts) {
   const submitter = accounts[0];
   const challenger = accounts[1];
 
