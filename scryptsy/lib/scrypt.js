@@ -4,7 +4,7 @@ var crypto = require('crypto')
 var MAX_VALUE = 0x7fffffff
 
 // N = Cpu cost, r = Memory cost, p = parallelization cost
-function scrypt (key, salt, N, r, p, dkLen, progressCallback) {
+function scrypt (key, salt, N, r, p, dkLen, callback) {
   if (N === 0 || (N & (N - 1)) !== 0) throw Error('N must be > 0 and a power of 2')
 
   if (N > MAX_VALUE / 128 / r) throw Error('Parameter N is too large')
@@ -21,55 +21,72 @@ function scrypt (key, salt, N, r, p, dkLen, progressCallback) {
   // pseudo global
   var B = crypto.pbkdf2Sync(key, salt, 1, p * 128 * r, 'sha256')
 
-  var tickCallback
-  if (progressCallback) {
-    var totalOps = p * N * 2
-    var currentOp = 0
+  console.log(`Input: ${B.toString('hex')}`)
+  callback(key, B, 0)
 
-    tickCallback = function () {
-      ++currentOp
-
-      // send progress notifications once every 1,000 ops
-      if (currentOp % 1000 === 0) {
-        progressCallback({
-          current: currentOp,
-          total: totalOps,
-          percent: (currentOp / totalOps) * 100.0
-        })
-      }
-    }
-  }
+  // var tickCallback
+  // if (progressCallback) {
+  //   var totalOps = p * N * 2
+  //   var currentOp = 0
+  //
+  //   tickCallback = function () {
+  //     ++currentOp
+  //
+  //     // send progress notifications once every 1,000 ops
+  //     if (currentOp % 1000 === 0) {
+  //       progressCallback({
+  //         current: currentOp,
+  //         total: totalOps,
+  //         percent: (currentOp / totalOps) * 100.0
+  //       })
+  //     }
+  //   }
+  // }
 
   for (var i = 0; i < p; i++) {
-    smix(B, i * 128 * r, r, N, V, XY)
+    smix(B, i * 128 * r, r, N, V, XY, callback)
   }
 
-  return crypto.pbkdf2Sync(key, B, 1, dkLen, 'sha256')
+  var result = crypto.pbkdf2Sync(key, B, 1, dkLen, 'sha256')
+  // console.log(`Output: ${result.toString('hex')}`);
+  callback(B, result, 2*N+1)
+  return result
 
   // all of these functions are actually moved to the top
   // due to function hoisting
 
-  function smix (B, Bi, r, N, V, XY) {
+  function smix (B, Bi, r, N, V, XY, callback) {
     var Xi = 0
     var Yi = 128 * r
     var i
+    var input = new Buffer(Yi)
+    var input_extra = new Buffer(Yi)
+    var output = new Buffer(Yi)
 
     B.copy(XY, Xi, Bi, Bi + Yi)
 
     for (i = 0; i < N; i++) {
       XY.copy(V, i * Yi, Xi, Xi + Yi)
+      XY.copy(input, 0, Xi, Xi + Yi);
+
       blockmix_salsa8(XY, Xi, Yi, r)
 
-      if (tickCallback) tickCallback()
+      // if (tickCallback) tickCallback()
+      XY.copy(output, 0, Xi, Xi + Yi)
+      callback(input, output, 1+i)
     }
 
     for (i = 0; i < N; i++) {
       var offset = Xi + (2 * r - 1) * 64
+      XY.copy(input, 0, Xi, Xi + Yi)
       var j = XY.readUInt32LE(offset) & (N - 1)
+      arraycopy(V, j * Yi, input_extra, 0, Yi)
       blockxor(V, j * Yi, XY, Xi, Yi)
       blockmix_salsa8(XY, Xi, Yi, r)
 
-      if (tickCallback) tickCallback()
+      // if (tickCallback) tickCallback()
+      XY.copy(output, 0, Xi, Xi + Yi)
+      callback(input, output, 1025+i, { input2: input_extra, input2_index: j })
     }
 
     XY.copy(B, Bi, Xi, Xi + Yi)
