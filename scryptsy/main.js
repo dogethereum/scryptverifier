@@ -1,5 +1,9 @@
-const scrypt = require('./lib/scrypt.js')
-const sha3 = require('./sha3.js').keccak256;
+const scrypt = require('./lib/scrypt.js');
+const sha3 = require('js-sha3').keccak256;
+const fs = require('fs');
+const argv = require('yargs')
+  .demandCommand(1)
+  .argv;
 
 function b32dec(blockHeader) {
   return reverse4bytes(Buffer.from(blockHeader, 'hex'));
@@ -26,7 +30,8 @@ function reverse(buffer) {
 
 
 class ScryptOutput {
-  constructor() {
+  constructor(filename) {
+    this.filename = filename;
     this.rounds = [];
   }
 
@@ -55,21 +60,28 @@ class ScryptOutput {
     }
 
     // console.log(`${JSON.stringify(round, null, '  ')}`);
-    this.rounds.push(round);
+    if (this.filename) {
+      this.rounds.push(round);
+    } else {
+       console.log(`${JSON.stringify(round, null, '  ')}`);
+    }
   }
 
   saveToFile() {
-    console.log(`${JSON.stringify(this.rounds, null, '  ')}`);
+    // console.log(`${JSON.stringify(this.rounds, null, '  ')}`);
+    if (this.filename) {
+      fs.writeFileSync(this.filename, JSON.stringify(this.rounds, null, '  '));
+    }
   }
 }
 
 
 async function main() {
   try {
-    const blockHeader = '00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01';
+    const blockHeader = argv._[0]; // '00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01';
     const input = b32dec(blockHeader);
     // console.log(`Block header: ${blockHeader}`);
-    const scryptOutput = new ScryptOutput();
+    const scryptOutput = new ScryptOutput(argv.output);
     const result = scrypt(input, input, 1024, 1, 1, 32, (...params) => scryptOutput.callback(...params));
     // console.log(`Result: ${result.toString('hex')}`);
     scryptOutput.saveToFile();

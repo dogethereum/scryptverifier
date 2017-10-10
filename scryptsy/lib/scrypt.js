@@ -21,7 +21,7 @@ function scrypt (key, salt, N, r, p, dkLen, callback) {
   // pseudo global
   var B = crypto.pbkdf2Sync(key, salt, 1, p * 128 * r, 'sha256')
 
-  console.log(`Input: ${B.toString('hex')}`)
+  // console.log(`Input: ${B.toString('hex')}`)
   callback(key, B, 0)
 
   // var tickCallback
