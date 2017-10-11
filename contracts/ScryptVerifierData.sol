@@ -22,13 +22,13 @@ contract ScryptVerifierData {
         address submitter;
         bytes input;
         bytes32 hash;
-        uint number;
+        address notify;
         mapping (uint => RoundData) rounds;
         mapping (uint => RequestData) requests;
     }
 
-    function makeBlockData(address submitter, bytes input, bytes32 hash, uint blockNumber) internal returns (BlockData) {
-        return BlockData(submitter, input, hash, blockNumber);
+    function makeBlockData(address submitter, bytes input, bytes32 hash, address notify) internal returns (BlockData) {
+        return BlockData(submitter, input, hash, notify);
     }
 
     function makeChallenge(address challenger, bytes32 blockHash) internal returns (ChallengeData) {

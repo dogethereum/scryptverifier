@@ -10,7 +10,7 @@ contract ScryptVerifier is ScryptVerifierData {
     mapping (bytes32 => BlockData) public blocks;
     mapping (bytes32 => ChallengeData) public challenges;
 
-    event NewBlock(bytes32 indexed blockHash);
+    event NewBlock(bytes32 indexed blockHash, bytes input);
     event NewChallenge(bytes32 indexed challengeId, bytes32 indexed blockHash);
     event ExistingDataHash(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start);
     event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start, uint length);
@@ -27,10 +27,10 @@ contract ScryptVerifier is ScryptVerifierData {
     function ScryptVerifier() {
     }
 
-    function submit(bytes32 hash, bytes input, uint blockNumber) public {
+    function submit(bytes32 hash, bytes input, address notify) public {
         require(blocks[hash].submitter == 0);
-        blocks[hash] = makeBlockData(msg.sender, input, hash, blockNumber);
-        NewBlock(hash);
+        blocks[hash] = makeBlockData(msg.sender, input, hash, notify);
+        NewBlock(hash, input);
     }
 
     function challenge(bytes32 blockHash) public {

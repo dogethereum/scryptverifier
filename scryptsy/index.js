@@ -1,13 +1,5 @@
 const scrypt = require('./lib/scrypt.js');
-const sha3 = require('js-sha3').keccak256;
-const fs = require('fs');
-const argv = require('yargs')
-  .demandCommand(1)
-  .argv;
-
-function b32dec(blockHeader) {
-  return reverse4bytes(Buffer.from(blockHeader, 'hex'));
-}
+const sha3 = require('./sha3').keccak256;
 
 function reverse4bytes(buffer) {
   const result = new Buffer(buffer.length);
@@ -20,6 +12,7 @@ function reverse4bytes(buffer) {
   return result;
 }
 
+
 function reverse(buffer) {
   const result = new Buffer(buffer.length);
   for (let i=0; i<buffer.length; ++i) {
@@ -30,8 +23,7 @@ function reverse(buffer) {
 
 
 class ScryptOutput {
-  constructor(filename) {
-    this.filename = filename;
+  constructor() {
     this.rounds = [];
   }
 
@@ -59,12 +51,7 @@ class ScryptOutput {
       }
     }
 
-    // console.log(`${JSON.stringify(round, null, '  ')}`);
-    if (this.filename) {
-      this.rounds.push(round);
-    } else {
-       console.log(`${JSON.stringify(round, null, '  ')}`);
-    }
+    this.rounds.push(round);
   }
 
   saveToFile() {
@@ -76,17 +63,12 @@ class ScryptOutput {
 }
 
 
-async function main() {
-  try {
-    const blockHeader = argv._[0]; // '00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01';
-    const input = Buffer.from(blockHeader, 'hex'); // b32dec(blockHeader);
-    const scryptOutput = new ScryptOutput(argv.output);
-    const result = scrypt(input, input, 1024, 1, 1, 32, (...params) => scryptOutput.callback(...params));
-    // console.log(`Result: ${result.toString('hex')}`);
-    scryptOutput.saveToFile();
-  } catch (err) {
-    console.log(`${err} - ${err.stack}`);
-  }
+function calcScrypt(input) {
+  return new Promise((resolve, reject) => {
+    const scryptOutput = new ScryptOutput();
+    const output = scrypt(input, input, 1024, 1, 1, 32, (...params) => scryptOutput.callback(...params));
+    resolve([ output, scryptOutput.rounds ]);
+  });
 }
 
-// main();
+module.exports = calcScrypt;

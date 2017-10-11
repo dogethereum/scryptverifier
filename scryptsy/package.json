@@ -1,8 +1,8 @@
 {
   "name": "scryptsy",
   "version": "1.0.0",
-  "description": "scryptsy\r ========",
-  "main": "main.js",
+  "description": "Return scrypt plust intermediate rounds",
+  "main": "index.js",
   "directories": {
     "lib": "lib",
     "test": "test"

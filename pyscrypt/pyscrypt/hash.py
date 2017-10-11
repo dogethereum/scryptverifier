@@ -268,6 +268,6 @@ def hash(password, salt, N, r, p, dkLen, callback):
         Bc.append((i >> 24) & 0xff)
 
     Bc = chars_to_bytes(Bc)
-    out = pbkdf2_single(password, chars_to_bytes(Bc), dkLen, prf)
+    out = pbkdf2_single(password, Bc, dkLen, prf)
     callback(Bc, out, 2*N+1)
     return out

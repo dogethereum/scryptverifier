@@ -28,8 +28,11 @@ const utils = require('./utils');
 class BaseAgent {
   constructor(scryptVerifier) {
     this.scryptVerifier = scryptVerifier;
-    this.loadData();
     this.initEvents();
+  }
+
+  stop() {
+    this.termEvents();
   }
 
   initEvents() {
@@ -96,16 +99,10 @@ class BaseAgent {
   }
 
   termEvents() {
-    this.newChallengeEvent.stopWatching();
-    this.newRequestEvent.stopWatching();
-    this.newBlockEvent.stopWatching();
-    this.newDataHashesEvent.stopWatching();
-  }
-
-  loadData() {
-    this.scryptRun = JSON.parse(fs.readFileSync('./run.json', 'utf8'));
-    this.blockHeader = `0x${this.scryptRun[0].input}`;
-    this.blockHash = `0x${this.scryptRun[2049].output}`;
+    if (this.newChallengeEvent) this.newChallengeEvent.stopWatching();
+    if (this.newRequestEvent) this.newRequestEvent.stopWatching();
+    if (this.newBlockEvent) this.newBlockEvent.stopWatching();
+    if (this.newDataHashesEvent) this.newDataHashesEvent.stopWatching();
   }
 
   async sendChallenge(blockHash, options) {
@@ -117,8 +114,8 @@ class BaseAgent {
     return this.scryptVerifier.blocks.call(blockHash);
   }
 
-  submitBlock(blockHash, blockHeader, blockNumber, options) {
-    return this.scryptVerifier.submit(blockHash, blockHeader, blockNumber, options);
+  submitBlock(blockHash, blockHeader, address, options) {
+    return this.scryptVerifier.submit(blockHash, blockHeader, address, options);
   }
 
   sendHashes(challengeId, start, hashes, options) {
