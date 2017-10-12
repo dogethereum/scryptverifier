@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
 const utils = require('../src/utils');
 
@@ -11,16 +12,16 @@ contract('ScryptVerifier Full Rounds', function(accounts) {
   let blockHash;
   let challengeId;
 
-  describe('...', () => {
+  describe.only('...', () => {
     before(async function () {
       scryptVerifier = await ScryptVerifier.deployed();
-      runData = JSON.parse(fs.readFileSync('./src/run.json', 'utf8'));
+      runData = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/run.json'), 'utf8'));
       blockHeader = `0x${runData[0].input}`;
       blockHash = `0x${runData[2049].output}`;
     })
     it("Initialize block data", async function() {
       const submit = await scryptVerifier.submit(blockHash, blockHeader, 0, { from: submitter });
-      const blockData = await scryptVerifier.blocks.call(blockHash);
+      const blockData = await scryptVerifier.submissions.call(blockHash);
       assert.equal(blockData[1], blockHeader, 'Block header should match');
       assert.equal(blockData[2], blockHash, 'Block hash should match');
     });
