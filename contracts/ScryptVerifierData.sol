@@ -15,10 +15,10 @@ contract ScryptVerifierData {
 
     struct ChallengeData {
         address challenger;
-        bytes32 blockHash;
+        bytes32 hash;
     }
 
-    struct BlockData {
+    struct SubmissionData {
         address submitter;
         bytes input;
         bytes32 hash;
@@ -27,12 +27,12 @@ contract ScryptVerifierData {
         mapping (uint => RequestData) requests;
     }
 
-    function makeBlockData(address submitter, bytes input, bytes32 hash, address notify) internal returns (BlockData) {
-        return BlockData(submitter, input, hash, notify);
+    function makeSubmissionData(address submitter, bytes input, bytes32 hash, address notify) internal returns (SubmissionData) {
+        return SubmissionData(submitter, input, hash, notify);
     }
 
-    function makeChallenge(address challenger, bytes32 blockHash) internal returns (ChallengeData) {
-        return ChallengeData(challenger, blockHash);
+    function makeChallenge(address challenger, bytes32 hash) internal returns (ChallengeData) {
+        return ChallengeData(challenger, hash);
     }
 
     function makeRound(bytes32 hash) internal returns (RoundData) {

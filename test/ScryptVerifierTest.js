@@ -5,8 +5,8 @@ contract('ScryptVerifier 1st half', function(accounts) {
   const submitter = accounts[0];
   const challenger = accounts[1];
 
-  const blockHeader = "0x00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01";
-  const blockHash = "0x0000000110c8357966576df46f3b802ca897deb7ad18b12f1c24ecff6386ebd9";
+  const input = "0x00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01";
+  const hash = "0x0000000110c8357966576df46f3b802ca897deb7ad18b12f1c24ecff6386ebd9";
 
   const intermediateHashes = [
     "0xde4e4d60bbe624a2be9c743ca7927468ef5a3e51c525b466b0a06ebd4dbd5054",  // 0
@@ -79,26 +79,26 @@ contract('ScryptVerifier 1st half', function(accounts) {
     scryptVerifier = await ScryptVerifier.deployed();
   })
 
-  it("Initialize block data", async function() {
-    const submit = await scryptVerifier.submit(blockHash, blockHeader, 0, { from: submitter });
-    const blockData = await scryptVerifier.blocks.call(blockHash);
-    assert.equal(blockData[1], blockHeader, 'Block header should match');
-    assert.equal(blockData[2], blockHash, 'Block hash should match');
+  it("Initialize submission data", async function() {
+    const submit = await scryptVerifier.submit(hash, input, 0, { from: submitter });
+    const submissionData = await scryptVerifier.submissions.call(hash);
+    assert.equal(submissionData[1], input, 'Input should match');
+    assert.equal(submissionData[2], hash, 'Hash should match');
   });
   it("Make a challenge", async function() {
-    const challengeTx = await scryptVerifier.challenge(blockHash, { from: challenger });
+    const challengeTx = await scryptVerifier.challenge(hash, { from: challenger });
     const { challengeId: thisChallengeId } = utils.parseNewChallenge(challengeTx);
     challengeId = thisChallengeId;
     assert.isOk(challengeId, 'New challenge created');
     const challengeData = await scryptVerifier.challenges.call(challengeId);
-    assert.equal(challengeData[1], blockHash, 'Block hash should match');
+    assert.equal(challengeData[1], hash, 'Hash should match');
   });
   it("Publish hashes", async function() {
     const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 0, intermediateHashes, { from: submitter });
     const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, 10 * i);
+      const roundData = await scryptVerifier.getRoundData.call(hash, 10 * i);
       assert.equal(intermediateHashes[i], roundData[5], 'Hashes set correctly');
     }
   });
@@ -115,7 +115,7 @@ contract('ScryptVerifier 1st half', function(accounts) {
       ({ challengeId: thisChallengeId, round: thisRound } = utils.parseNewDataArrived(sendDataTx));
       assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
       assert.equal(parseInt(thisRound), round, 'Required round should match');
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, round);
+      const roundData = await scryptVerifier.getRoundData.call(hash, round);
 
       for (let i=0; i<4; ++i) {
         assert.equal(web3.toHex(roundData[1+i]), web3.toHex(new web3.BigNumber(roundInput[idx][i])), `Round ${round} set correctly`);
@@ -127,7 +127,7 @@ contract('ScryptVerifier 1st half', function(accounts) {
     const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes2.length; ++i) {
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, 1000 + 10 * i);
+      const roundData = await scryptVerifier.getRoundData.call(hash, 1000 + 10 * i);
       assert.equal(intermediateHashes2[i], roundData[5], 'Hashes set correctly');
     }
   });
@@ -135,7 +135,7 @@ contract('ScryptVerifier 1st half', function(accounts) {
     const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 1024, intermediateHashes3, { from: submitter });
     const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
-    const roundData = await scryptVerifier.getRoundData.call(blockHash, 1024);
+    const roundData = await scryptVerifier.getRoundData.call(hash, 1024);
     assert.equal(intermediateHashes3[0], roundData[5], 'Hashes set correctly');
   });
   [[1000, 0], [1010, 1], [1020, 2]].forEach(([round, idx]) => {
@@ -150,7 +150,7 @@ contract('ScryptVerifier 1st half', function(accounts) {
       ({ challengeId: thisChallengeId, round: thisRound } = utils.parseNewDataArrived(sendDataTx));
       assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
       assert.equal(parseInt(thisRound), round, 'Required round should match');
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, round);
+      const roundData = await scryptVerifier.getRoundData.call(hash, round);
 
       for (let i=0; i<4; ++i) {
         assert.equal(web3.toHex(roundData[1+i]), web3.toHex(new web3.BigNumber(roundInput2[idx][i])), 'Round input set correctly');
@@ -165,8 +165,8 @@ contract('ScryptVerifier 2nd half', function(accounts) {
   const submitter = accounts[0];
   const challenger = accounts[1];
 
-  const blockHeader = "0x00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01";
-  const blockHash = "0x0000000110c8357966576df46f3b802ca897deb7ad18b12f1c24ecff6386ebd9";
+  const input = "0x00000001cef715f6b8c64f3b898f1ef6081ddbae507650523b9e3a53ccbbb910279f633067a8ca9f52efe146c4b3edd3925982add09b500d9b5c60738399d5f1066b2a754ebb17b81d018ea7d4592d01";
+  const hash = "0x0000000110c8357966576df46f3b802ca897deb7ad18b12f1c24ecff6386ebd9";
 
   const intermediateHashes = [
     "0xd042ad6882ceb163d869ddab4314651f0fe6a4e2b0764e9e699af4aab12651b8",  // 1024
@@ -362,26 +362,26 @@ contract('ScryptVerifier 2nd half', function(accounts) {
     scryptVerifier = await ScryptVerifier.deployed();
   })
 
-  it("Initialize block data", async function() {
-    const submit = await scryptVerifier.submit(blockHash, blockHeader, 0, { from: submitter });
-    const blockData = await scryptVerifier.blocks.call(blockHash);
-    assert.equal(blockData[1], blockHeader, 'Block header should match');
-    assert.equal(blockData[2], blockHash, 'Block hash should match');
+  it("Initialize submission data", async function() {
+    const submit = await scryptVerifier.submit(hash, input, 0, { from: submitter });
+    const submissionData = await scryptVerifier.submissions.call(hash);
+    assert.equal(submissionData[1], input, 'Input should match');
+    assert.equal(submissionData[2], hash, 'Hash should match');
   });
   it("Make a challenge", async function() {
-    const challengeTx = await scryptVerifier.challenge(blockHash, { from: challenger });
+    const challengeTx = await scryptVerifier.challenge(hash, { from: challenger });
     const { challengeId: thisChallengeId } = utils.parseNewChallenge(challengeTx);
     challengeId = thisChallengeId;
     assert.isOk(challengeId, 'New challenge created');
     const challengeData = await scryptVerifier.challenges.call(challengeId);
-    assert.equal(challengeData[1], blockHash, 'Block hash should match');
+    assert.equal(challengeData[1], hash, 'Hash should match');
   });
   it("Publish hashes", async function() {
     const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 1024, intermediateHashes, { from: submitter });
     const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, 1024 + 10 * i);
+      const roundData = await scryptVerifier.getRoundData.call(hash, 1024 + 10 * i);
       assert.equal(intermediateHashes[i], roundData[5], 'Hashes set correctly');
     }
   });
@@ -397,7 +397,7 @@ contract('ScryptVerifier 2nd half', function(accounts) {
       const { challengeId: thisChallengeId, round: thisRound } = utils.parseNewDataArrived(sendDataTx);
       assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
       assert.equal(parseInt(thisRound), round, 'Required round should match');
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, round);
+      const roundData = await scryptVerifier.getRoundData.call(hash, round);
       for (let i=0; i<4; ++i) {
         assert.equal(web3.toHex(roundData[1+i]), web3.toHex(new web3.BigNumber(roundInput[idx][i])), `Round ${round} set correctly`);
       }
@@ -565,7 +565,7 @@ contract('ScryptVerifier 2nd half', function(accounts) {
     const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
     for (let i=0; i<intermediateHashes.length; ++i) {
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, 2024 + 10 * i);
+      const roundData = await scryptVerifier.getRoundData.call(hash, 2024 + 10 * i);
       assert.equal(intermediateHashes2[i], roundData[5], 'Hashes set correctly');
     }
   });
@@ -573,7 +573,7 @@ contract('ScryptVerifier 2nd half', function(accounts) {
     const sendHashesTx = await scryptVerifier.sendHashes(challengeId, 2049, intermediateHashes3, { from: submitter });
     const { challengeId: thisChallengeId } = utils.parseNewDataHashes(sendHashesTx);
     assert.equal(thisChallengeId, challengeId, 'Challenge ids should match');
-    const roundData = await scryptVerifier.getRoundData.call(blockHash, 2049);
+    const roundData = await scryptVerifier.getRoundData.call(hash, 2049);
     assert.equal(intermediateHashes3[0], roundData[5], 'Hashes set correctly');
   });
   [[2024, 0], [2034, 1], [2044, 2]].forEach(([round, idx]) => {
@@ -588,7 +588,7 @@ contract('ScryptVerifier 2nd half', function(accounts) {
       const { challengeId: thisChallengeId, round: thisRound } = utils.parseNewDataArrived(sendDataTx);
       assert.equal(thisChallengeId, challengeId, 'Challenges id sould match');
       assert.equal(parseInt(thisRound), round, 'Required round should match');
-      const roundData = await scryptVerifier.getRoundData.call(blockHash, round);
+      const roundData = await scryptVerifier.getRoundData.call(hash, round);
       for (let i=0; i<4; ++i) {
         assert.equal(web3.toHex(roundData[1+i]), web3.toHex(new web3.BigNumber(roundInput2[idx][i])), `Round ${round} set correctly`);
       }

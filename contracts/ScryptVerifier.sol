@@ -7,17 +7,18 @@ import "./ScryptVerifierData.sol";
 contract ScryptVerifier is ScryptVerifierData {
     uint constant ROUNDS_PER_CYCLE = 10;
 
-    mapping (bytes32 => BlockData) public blocks;
+    mapping (bytes32 => SubmissionData) public submissions;
     mapping (bytes32 => ChallengeData) public challenges;
 
-    event NewBlock(bytes32 indexed blockHash, bytes input);
-    event NewChallenge(bytes32 indexed challengeId, bytes32 indexed blockHash);
-    event ExistingDataHash(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start);
-    event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed blockHash, uint start, uint length);
-    event ExistingRequest(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
-    event NewRequest(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
-    event NewDataArrived(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round);
-    event RoundVerified(bytes32 indexed challengeId, bytes32 indexed blockHash, uint round, uint last);
+    event NewSubmission(bytes32 indexed hash, bytes input);
+    event ExistingSubmission(bytes32 indexed hash, bytes input);
+    event NewChallenge(bytes32 indexed challengeId, bytes32 indexed hash);
+    event ExistingDataHash(bytes32 indexed challengeId, bytes32 indexed hash, uint start);
+    event NewDataHashes(bytes32 indexed challengeId, bytes32 indexed hash, uint start, uint length);
+    event ExistingRequest(bytes32 indexed challengeId, bytes32 indexed hash, uint round);
+    event NewRequest(bytes32 indexed challengeId, bytes32 indexed hash, uint round);
+    event NewDataArrived(bytes32 indexed challengeId, bytes32 indexed hash, uint round);
+    event RoundVerified(bytes32 indexed challengeId, bytes32 indexed hash, uint round, uint last);
 
     uint public uno;
     bytes32 public dos;
@@ -28,62 +29,65 @@ contract ScryptVerifier is ScryptVerifierData {
     }
 
     function submit(bytes32 hash, bytes input, address notify) public {
-        require(blocks[hash].submitter == 0);
-        blocks[hash] = makeBlockData(msg.sender, input, hash, notify);
-        NewBlock(hash, input);
+        if (submissions[hash].submitter == 0) {
+          submissions[hash] = makeSubmissionData(msg.sender, input, hash, notify);
+          NewSubmission(hash, input);
+        } else {
+          ExistingSubmission(hash, input);
+        }
     }
 
-    function challenge(bytes32 blockHash) public {
-        require(blocks[blockHash].submitter != 0);
-        bytes32 challengeId = sha3(msg.sender, blockHash, block.number);
+    function challenge(bytes32 hash) public {
+        require(submissions[hash].submitter != 0);
+        bytes32 challengeId = sha3(msg.sender, hash);
         require(challenges[challengeId].challenger == 0);
-        challenges[challengeId] = makeChallenge(msg.sender, blockHash);
-        NewChallenge(challengeId, blockHash);
+        challenges[challengeId] = makeChallenge(msg.sender, hash);
+        NewChallenge(challengeId, hash);
     }
 
     function sendHashes(bytes32 challengeId, uint start, bytes32[] hashes) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
-        bytes32 blockHash = challenges[challengeId].blockHash;
-        require(blocks[blockHash].submitter == msg.sender); // only submitter can reply
-        BlockData storage blockData = blocks[blockHash];
-        if (blockData.rounds[start].kind != 0) {
-            ExistingDataHash(challengeId, blockHash, start);
+        bytes32 hash = challenges[challengeId].hash;
+        require(submissions[hash].submitter == msg.sender); // only submitter can reply
+        SubmissionData storage submissionData = submissions[hash];
+        if (submissionData.rounds[start].kind != 0) {
+            ExistingDataHash(challengeId, hash, start);
         } else {
             for (uint i=0; i<hashes.length; ++i) {
-                blockData.rounds[start + i * ROUNDS_PER_CYCLE] = makeRound(hashes[i]);
+                submissionData.rounds[start + i * ROUNDS_PER_CYCLE] = makeRound(hashes[i]);
             }
-            NewDataHashes(challengeId, blockHash, start, hashes.length);
+            NewDataHashes(challengeId, hash, start, hashes.length);
         }
     }
 
     function request(bytes32 challengeId, uint round) public {
         require(challenges[challengeId].challenger == msg.sender); // only challenger can request
         ChallengeData storage challengeData = challenges[challengeId];
-        require(blocks[challengeData.blockHash].submitter != 0); // existing block
-        BlockData storage blockData = blocks[challengeData.blockHash];
-        if (blockData.requests[round].challenger == 0) {
-            blockData.requests[round] = makeRequest(msg.sender, round);
-            NewRequest(challengeId, challengeData.blockHash, round);
+        require(submissions[challengeData.hash].submitter != 0); // existing submission
+        SubmissionData storage submissionData = submissions[challengeData.hash];
+        if (submissionData.requests[round].challenger == 0) {
+            submissionData.requests[round] = makeRequest(msg.sender, round);
+            NewRequest(challengeId, challengeData.hash, round);
         } else {
-            ExistingRequest(challengeId, challengeData.blockHash, round);
+            ExistingRequest(challengeId, challengeData.hash, round);
         }
     }
 
     function sendData(bytes32 challengeId, uint round, uint[4] data, uint[] extra) public {
         require(challenges[challengeId].challenger != 0); // existing challenge
-        bytes32 blockHash = challenges[challengeId].blockHash;
-        require(blocks[blockHash].submitter == msg.sender); // only submitter can send data
-        BlockData storage blockData = blocks[blockHash];
-        require(blockData.requests[round].challenger != 0); // existing request
-        RoundData storage roundData = blockData.rounds[round];
+        bytes32 hash = challenges[challengeId].hash;
+        require(submissions[hash].submitter == msg.sender); // only submitter can send data
+        SubmissionData storage submissionData = submissions[hash];
+        require(submissionData.requests[round].challenger != 0); // existing request
+        RoundData storage roundData = submissionData.rounds[round];
         require(0 !=  roundData.kind);
-        bytes32 hash;
+        bytes32 temp;
         RoundData memory roundData2;
         if (round != 0) {
-            hash = sha3(data[0], data[1], data[2], data[3]);
-            require(hash ==  roundData.hash);
+            temp = sha3(data[0], data[1], data[2], data[3]);
+            require(temp ==  roundData.hash);
         } else {
-          roundData2 = executeStep(blockHash, 0);
+          roundData2 = executeStep(hash, 0);
             if (roundData2.kind == 2) {
                 assert(data[0] == roundData2.data[0]);
                 assert(data[1] == roundData2.data[1]);
@@ -91,10 +95,10 @@ contract ScryptVerifier is ScryptVerifierData {
                 assert(data[3] == roundData2.data[3]);
             }
         }
-        blockData.requests[round].answered = true;
+        submissionData.requests[round].answered = true;
         roundData.data = data;
         roundData.kind = 2;
-        NewDataArrived(challengeId, blockHash, round);
+        NewDataArrived(challengeId, hash, round);
 
         uint step = round;
         bool correct = true;
@@ -110,31 +114,31 @@ contract ScryptVerifier is ScryptVerifierData {
         for (uint i=0; i<numRounds && correct; ++i) {
             step += 1;
             if (step > 1024 && step <= 2048) {
-                sendExtra(blockData, roundData2.data[2], [
+                sendExtra(submissionData, roundData2.data[2], [
                     extra[4*i+0],
                     extra[4*i+1],
                     extra[4*i+2],
                     extra[4*i+3]
                 ]);
             }
-            roundData2 = executeStep(blockHash, step);
+            roundData2 = executeStep(hash, step);
             if (roundData2.kind == 2) {
-                if (blockData.rounds[step].kind == 1) {
-                    assert(blockData.rounds[step].hash == roundData2.hash);
+                if (submissionData.rounds[step].kind == 1) {
+                    assert(submissionData.rounds[step].hash == roundData2.hash);
                 }
-                blockData.rounds[step] = roundData2;
+                submissionData.rounds[step] = roundData2;
             } else {
                 correct = false;
             }
         }
         assert(correct);
-        RoundVerified(challengeId, blockHash, round, step);
+        RoundVerified(challengeId, hash, round, step);
     }
 
-    function sendExtra(BlockData storage blockData, uint idx, uint[4] extra) internal {
+    function sendExtra(SubmissionData storage submissionData, uint idx, uint[4] extra) internal {
         bytes32 hash;
         idx = (idx / 256**28) % 1024;
-        RoundData storage extraInput = blockData.rounds[idx];
+        RoundData storage extraInput = submissionData.rounds[idx];
         hash = sha3(extra[0], extra[1], extra[2], extra[3]);
         if (extraInput.kind == 0) { // Round without info
             extraInput.hash = hash;
@@ -152,7 +156,7 @@ contract ScryptVerifier is ScryptVerifierData {
     function runStep(bytes32 hash, uint round) public returns (bool) {
         RoundData memory roundData = executeStep(hash, round);
         if (roundData.kind == 2) {
-            blocks[hash].rounds[round] = roundData;
+            submissions[hash].rounds[round] = roundData;
             return true;
         }
         return false;
@@ -163,31 +167,31 @@ contract ScryptVerifier is ScryptVerifierData {
         RoundData memory round;
         bytes memory temp4;
 
-        BlockData storage blockData = blocks[_hash];
-        if (blockData.hash != _hash) {
+        SubmissionData storage submissionData = submissions[_hash];
+        if (submissionData.hash != _hash) {
             return makeRoundWithoutData(1);
         }
 
         if (step == 0) {
             bytes32[4] memory temp;
-            temp4 = swap4bytes(blockData.input);
+            temp4 = swap4bytes(submissionData.input);
             temp = KeyDeriv.pbkdf2(temp4, temp4, 128);
-            //temp = KeyDeriv.pbkdf2(blockData.input, blockData.input, 128);
+            //temp = KeyDeriv.pbkdf2(submissionData.input, submissionData.input, 128);
             result = b32enc(temp);
         } else if (step <= 1024) {
-            round = blockData.rounds[step - 1];
+            round = submissionData.rounds[step - 1];
             if (round.kind != 2) {
                 return makeRoundWithoutData(2);
             }
             result = Salsa8.round(round.data);
         } else if (step <= 2048) {
-            round = blockData.rounds[step - 1];
+            round = submissionData.rounds[step - 1];
             if (round.kind != 2) {
                 return makeRoundWithoutData(3);
             }
             uint idx = round.data[2];
             idx = (idx / 256**28) % 1024;
-            RoundData storage temp2 = blockData.rounds[idx];
+            RoundData storage temp2 = submissionData.rounds[idx];
             if (temp2.kind != 2) {
                 return makeRoundWithoutData(4);
             }
@@ -198,12 +202,12 @@ contract ScryptVerifier is ScryptVerifierData {
                 round.data[3] ^ temp2.data[3]
             ]);
         } else if (step == 2049) {
-            round = blockData.rounds[step - 1];
+            round = submissionData.rounds[step - 1];
             if (round.kind != 2) {
                 return makeRoundWithoutData(5);
             }
             bytes memory salt = concatenate(round.data);
-            temp4 = swap4bytes(blockData.input);
+            temp4 = swap4bytes(submissionData.input);
             bytes32[4] memory temp3 = KeyDeriv.pbkdf2(temp4, salt, 32);
             bytes32 output = bytes32(reverse(uint(temp3[0])));
             result[0] = uint(output);
@@ -220,8 +224,8 @@ contract ScryptVerifier is ScryptVerifierData {
         return makeRoundWithData(hash, result);
     }
 
-    function getRoundData(bytes32 blockHash, uint step) constant public returns (uint8, uint, uint, uint, uint, bytes32) {
-        RoundData storage r = blocks[blockHash].rounds[step];
+    function getRoundData(bytes32 hash, uint step) constant public returns (uint8, uint, uint, uint, uint, bytes32) {
+        RoundData storage r = submissions[hash].rounds[step];
         return (r.kind, r.data[0], r.data[1], r.data[2], r.data[3], r.hash);
     }
 
