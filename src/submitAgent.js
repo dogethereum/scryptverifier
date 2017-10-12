@@ -3,7 +3,7 @@ const Web3 = require('web3');
 const makeScryptVerifier = require('./ScryptVerifier');
 const BaseAgent = require('./BaseAgent');
 const config = require('./config');
-const scrypt = require('../scryptsy');
+const scryptsy = require('../scryptsy');
 
 
 class SubmitAgent extends BaseAgent {
@@ -14,7 +14,8 @@ class SubmitAgent extends BaseAgent {
 
   async run(blockHeaders) {
     blockHeaders.forEach(async (blockHeader) => {
-      const [ blockHash, ] = await scrypt(blockHeader);
+      let [ blockHash, ] = await scryptsy(blockHeader);
+      blockHash = blockHash.reverse();
       console.log(`BlockHeader: ${blockHeader.toString('hex')}`);
       console.log(`BlockHash: ${blockHash.toString('hex')}`);
       await this.submitBlock(`0x${blockHash.toString('hex')}`, `0x${blockHeader.toString('hex')}`, '0x0', { from: this.submitter });

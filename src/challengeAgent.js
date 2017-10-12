@@ -1,7 +1,7 @@
 const Web3 = require('web3');
 const makeScryptVerifier = require('./ScryptVerifier');
 const BaseAgent = require('./BaseAgent');
-const scrypt = require('../scryptsy');
+const scryptsy = require('../scryptsy');
 const config = require('./config');
 
 
@@ -33,7 +33,7 @@ class ChallengeAgent extends BaseAgent {
   async onNewBlock(blockData) {
     const { blockHash, input } = blockData.args;
     console.log(JSON.stringify(blockData.args, null, '  '));
-    const [ result, ] = await scrypt(Buffer.from(input.slice(2)));
+    const [ result, ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
     console.log(result.toString('hex'));
     // console.log(`New block: ${JSON.stringify(blockHash, null, '  ')}`);
     //
