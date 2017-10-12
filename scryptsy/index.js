@@ -1,22 +1,12 @@
 const scrypt = require('./lib/scrypt.js');
 const sha3 = require('./sha3').keccak256;
 
-function reverse4bytes(buffer) {
+
+function be2le(input) {
+  const buffer = new Buffer(input);
   const result = new Buffer(buffer.length);
   for (let i=0; i<buffer.length; i+=4) {
-    result[i+0] = buffer[i+3];
-    result[i+1] = buffer[i+2];
-    result[i+2] = buffer[i+1];
-    result[i+3] = buffer[i+0];
-  }
-  return result;
-}
-
-
-function reverse(buffer) {
-  const result = new Buffer(buffer.length);
-  for (let i=0; i<buffer.length; ++i) {
-    result[i] = buffer[buffer.length - i - 1];
+    result.writeUInt32LE(buffer.readUInt32BE(i), i);
   }
   return result;
 }
@@ -30,22 +20,22 @@ class ScryptOutput {
   callback(input, output, step, extra) {
     const round = { step };
     if (step === 0) {
-      round.input = reverse4bytes(input).toString('hex');
+      round.input = be2le(input).toString('hex');
       round.input_hash = sha3(Buffer.from(round.input, 'hex')).toString('hex');
-      round.output = reverse4bytes(output).toString('hex');
+      round.output = be2le(output).toString('hex');
       round.output_hash = sha3(Buffer.from(round.output, 'hex')).toString('hex');
     } else if (step === 2049) {
-      round.input = reverse4bytes(input).toString('hex');
+      round.input = be2le(input).toString('hex');
       round.input_hash = sha3(Buffer.from(round.input, 'hex')).toString('hex');
-      round.output = reverse(output).toString('hex');
+      round.output = output.reverse().toString('hex');
       round.output_hash = sha3(Buffer.from(round.output, 'hex')).toString('hex');
     } else {
-      round.input = reverse4bytes(input).toString('hex');
+      round.input = be2le(input).toString('hex');
       round.input_hash = sha3(Buffer.from(round.input, 'hex')).toString('hex');
-      round.output = reverse4bytes(output).toString('hex');
+      round.output = be2le(output).toString('hex');
       round.output_hash = sha3(Buffer.from(round.output, 'hex')).toString('hex');
       if (step > 1024) {
-        round.input2 = reverse4bytes(extra.input2).toString('hex');
+        round.input2 = be2le(extra.input2).toString('hex');
         round.input2_hash = sha3(Buffer.from(round.input2, 'hex')).toString('hex');;
         round.input2_index = extra.input2_index;
       }
