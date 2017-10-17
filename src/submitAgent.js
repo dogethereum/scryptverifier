@@ -12,13 +12,13 @@ class SubmitAgent extends BaseAgent {
     this.submitter = submitter;
   }
 
-  async run(blockHeaders) {
-    blockHeaders.forEach(async (blockHeader) => {
-      let [ blockHash, ] = await scryptsy(blockHeader);
-      blockHash = blockHash.reverse();
-      console.log(`BlockHeader: ${blockHeader.toString('hex')}`);
-      console.log(`BlockHash: ${blockHash.toString('hex')}`);
-      await this.submitBlock(`0x${blockHash.toString('hex')}`, `0x${blockHeader.toString('hex')}`, '0x0', { from: this.submitter });
+  async run(inputs) {
+    inputs.forEach(async (input) => {
+      let [ hash, ] = await scryptsy(input);
+      hash = hash.reverse();
+      console.log(`BlockHeader: ${input.toString('hex')}`);
+      console.log(`BlockHash: ${hash.toString('hex')}`);
+      await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.submitter });
     })
   }
 
@@ -56,13 +56,13 @@ class SubmitAgent extends BaseAgent {
     }
   }
 
-  onNewBlock(blockData) {
+  onNewSubmission(submissionData) {
   }
 
   onNewChallenge(challengeData) {
     // console.log(`New challenge ${JSON.stringify(challengeData, null, '  ')}`);
-    const { blockHash, challengeId } = challengeData.args;
-    if (blockHash === this.blockHash) {
+    const { hash, challengeId } = challengeData.args;
+    if (hash === this.blockHash) {
       console.log(`New challenge: ${challengeId} for ${blockHash}`);
       this.replyChallenge(challengeId);
     }

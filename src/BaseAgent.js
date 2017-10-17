@@ -60,11 +60,11 @@ class BaseAgent {
         console.log(`Error: ${ex} ${ex.stack}`);
       }
     });
-    this.newBlockEvent = this.scryptVerifier.NewBlock();
-    this.newBlockEvent.watch((err, result) => {
+    this.newSubmissionEvent = this.scryptVerifier.NewSubmission();
+    this.newSubmissionEvent.watch((err, result) => {
       try {
         if (!err) {
-          this.onNewBlock(result);
+          this.onNewSubmission(result);
         } else {
           console.log(`Error: ${err} ${err.stack}`);
         }
@@ -101,21 +101,21 @@ class BaseAgent {
   termEvents() {
     if (this.newChallengeEvent) this.newChallengeEvent.stopWatching();
     if (this.newRequestEvent) this.newRequestEvent.stopWatching();
-    if (this.newBlockEvent) this.newBlockEvent.stopWatching();
+    if (this.newSubmissionEvent) this.newSubmissionEvent.stopWatching();
     if (this.newDataHashesEvent) this.newDataHashesEvent.stopWatching();
   }
 
-  async sendChallenge(blockHash, options) {
-    const challengeTx = await this.scryptVerifier.challenge(blockHash, options);
+  async sendChallenge(hash, options) {
+    const challengeTx = await this.scryptVerifier.challenge(hash, options);
     return utils.parseNewChallenge(challengeTx);
   }
 
-  getBlock(blockHash) {
-    return this.scryptVerifier.blocks.call(blockHash);
+  getSubmission(hash) {
+    return this.scryptVerifier.submissions.call(hash);
   }
 
-  submitBlock(blockHash, blockHeader, address, options) {
-    return this.scryptVerifier.submit(blockHash, blockHeader, address, options);
+  sendSubmission(hash, data, address, options) {
+    return this.scryptVerifier.submit(hash, data, address, options);
   }
 
   sendHashes(challengeId, start, hashes, options) {
@@ -133,16 +133,16 @@ class BaseAgent {
     return this.scryptVerifier.sendData(challengeId, 10, data, [], options);
   }
 
+  onNewSubmission(submissionData) {
+    console.log(`BA: New submission: ${JSON.stringify(submissionData, null, '  ')}`);
+  }
+
   onNewChallenge(challengeData) {
     console.log(`BA: New challenge: ${JSON.stringify(challengeData, null, '  ')}`);
   }
 
   onNewRequest(requestData) {
     console.log(`BA: New request: ${JSON.stringify(requestData, null, '  ')}`);
-  }
-
-  onNewBlock(blockData) {
-    console.log(`BA: New block: ${JSON.stringify(blockData, null, '  ')}`);
   }
 
   onNewDataHashes(dataHashes) {

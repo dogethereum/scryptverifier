@@ -30,16 +30,22 @@ class ChallengeAgent extends BaseAgent {
     console.log(`Send request ${JSON.stringify(requestTx, null, '  ')}`);
   }
 
-  async onNewBlock(blockData) {
-    const { blockHash, input } = blockData.args;
-    console.log(JSON.stringify(blockData.args, null, '  '));
-    const [ result, ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
+  async onNewSubmission(submissionData) {
+    const { hash, input } = submissionData.args;
+    console.log(JSON.stringify(submissionData.args, null, '  '));
+    let [ result, ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
+    result = result.reverse();
     console.log(result.toString('hex'));
     // console.log(`New block: ${JSON.stringify(blockHash, null, '  ')}`);
     //
     // if (blockHash === this.blockHash) {
     //   this.makeChallenge();
     // }
+    if (`0x${result.toString('hex')}` != hash) {
+      console.log("Hashes didn't match. Will challenge");
+    } else {
+      console.log("Matching hashes. No need to challenge");
+    }
   }
 
   onNewChallenge(challengeData) {
