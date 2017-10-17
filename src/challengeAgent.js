@@ -9,19 +9,21 @@ class ChallengeAgent extends BaseAgent {
   constructor(scryptVerifier, challenger) {
     super(scryptVerifier);
     this.challenger = challenger;
+    this.pendingChallenges = {};
   }
 
   async run() {
   }
 
-  async makeChallenge() {
-    if (!this.challengeId) {
-      console.log(`Making challenge..`);
-      const { challengeId } = await this.sendChallenge(this.blockHash, { from: this.challenger });
-      this.challengeId = challengeId;
-      console.log(`Got new challenge id ${this.challengeId}`);
+  async makeChallenge(hash) {
+    if (!this.pendingChallenges[hash]) {
+      console.log(`Making challenge.. ${hash}`);
+      this.pendingChallenges[hash] = { pending: true, };
+      const { challengeId } = await this.sendChallenge(hash, { from: this.challenger });
+      this.pendingChallenges[hash].challengeId = challengeId;
+      console.log(`Got new challenge id ${challengeId}`);
     } else {
-      console.log(`Challenge already in progress ${this.challengeId}`);
+      console.log(`Challenge already in progress ${this.pendingChallenges[hash].challengeId}`);
     }
   }
 
@@ -44,7 +46,8 @@ class ChallengeAgent extends BaseAgent {
     if (`0x${result.toString('hex')}` != hash) {
       console.log("Hashes didn't match. Will challenge");
     } else {
-      console.log("Matching hashes. No need to challenge");
+      console.log("Matching hashes. No need to challenge, but challenge anyway");
+      this.makeChallenge(hash);
     }
   }
 

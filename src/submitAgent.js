@@ -96,12 +96,12 @@ async function main() {
     const submitAgent = new SubmitAgent(scryptVerifier, submitter);
 
     // console.log(process.argv[2] ? process.argv[2] : '--none-');
-    const headers = [];
+    const submissions = [];
     for (let i=2; i<process.argv.length; ++i) {
-      headers.push(Buffer.from(process.argv[i], 'hex'));
+      submissions.push(Buffer.from(process.argv[i], 'hex'));
     }
 
-    submitAgent.run(headers);
+    submitAgent.run(submissions);
 
 
     submitAgent.stop();
