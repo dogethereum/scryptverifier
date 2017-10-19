@@ -106,12 +106,9 @@ class BaseAgent {
 
   sendRequest(challengeId, round, options) {
     return this.scryptVerifier.request(challengeId, round, options);
-    // console.log(`SendRequest: ${JSON.stringify(requestTx, null, '  ')}`);
-    // return utils.parseNewRequest(requestTx);
   }
 
   sendRound(challengeId, round, data, extraData, options) {
-    console.log(`Send round ${challengeId}, ${JSON.stringify(data, null, '  ')}`);
     return this.scryptVerifier.sendData(challengeId, round, data, extraData, options);
   }
 

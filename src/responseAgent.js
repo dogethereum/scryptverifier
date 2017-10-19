@@ -67,7 +67,7 @@ class ResponseAgent extends BaseAgent {
     const intermediate = submission.intermediate;
     const roundInput = [];
     for (let i=0; i<4; ++i) {
-      roundInput.push(`0x${intermediate[round].output.slice(i*64, i*64+64)}`);
+      roundInput.push(`0x${intermediate[round].output.slice(64*i, 64*i+64)}`);
     }
     const extraInputs = [];
     if (round >= 1024) {
@@ -81,7 +81,6 @@ class ResponseAgent extends BaseAgent {
       }
     }
     const sendRoundTx = await this.sendRound(challengeId, round, roundInput, extraInputs, { from: this.responder });
-    console.log(`Result: ${JSON.stringify(sendRoundTx, null, '  ')}`);
   }
 
   onNewSubmission(submissionData) {
@@ -98,14 +97,16 @@ class ResponseAgent extends BaseAgent {
 
   onNewRequest(requestData) {
     const { hash, challengeId, round: strRound } = requestData.args;
-    //console.log(JSON.stringify(requestData, null, '  '));
-    const round = typeof strRound === 'string' ? parseInt(strRound, 10) : strRound;
+    const round = parseInt(strRound, 10);
     console.log(`New request: hash: ${hash}, id: ${challengeId}, round: ${round}`);
     if (this.submissions[hash]) {
       this.replyRequest(hash, challengeId, round);
     } else {
       console.log(`Not valid hash ${hash}`);
     }
+  }
+
+  onRoundVerified(roundResult) {
   }
 }
 

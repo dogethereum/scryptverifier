@@ -24,15 +24,10 @@ class ChallengeAgent extends BaseAgent {
       intermediateHashes: [],
       replies: [],
       requests: {},
+      hashes: {},
+      pending: [],
     };
     console.log(`Got challenge id ${challengeId}`);
-  }
-
-  async makeRequest(challengeId, round) {
-    console.log(`About to send request ${challengeId} for ${round}`);
-    this.challenges[challengeId].requests[round] = { pending: true };
-    const requestTx = await this.sendRequest(challengeId, round, { from: this.challenger });
-    console.log(`Send request ${requestTx.tx}`);
   }
 
   async processSubmission(hash, input) {
@@ -54,39 +49,73 @@ class ChallengeAgent extends BaseAgent {
     }
   }
 
-  async verifyHashes(hash, challengeId, start, length) {
+  async processHashes(hash, challengeId, start, length) {
     const challenge = this.challenges[challengeId];
+    if (!challenge) {
+      console.log(`Not valid challenge id ${challengeId}`);
+      return;
+    }
     const hashes = await this.getHashes(hash, start, length);
     const submission = this.submissions[hash];
-    let i=0;
-    for (i=0; i<length; ++i) {
-      if (`0x${submission.intermediate[start + 10*i].output_hash}` !== hashes[i]) {
-        break;
-      }
-    }
-    if (i < length) {
-      console.log(`Match failed at ${start + 10*i}, got: ${hashes[i]}, expected: 0x${submission.intermediate[start + 10*i].output_hash}`);
+    for (let i=0; i<hashes.length; ++i) {
+      challenge.hashes[start + 10*i] = hashes[i];
     }
     challenge.replies.push({
       start,
       length,
-      hashes,
-      verified: i >= length,
-      firstFailure: i < length ? i : undefined,
     });
     if (challenge.replies.length >= 4) {
-      const [ verified, firstFailure ] = challenge.replies.reduce(([verified, firstFailure], reply) => {
-        return [ verified && reply.verified, firstFailure === undefined ? reply.firstFailure : firstFailure ];
-      }, [ true, undefined ]);
-      if (!verified) {
-        console.log("Hashes received didn't match calculated from data, will request data at ${firstFailure}");
-        this.makeRequest(challengeId, firstFailure);
+      this.verifyHashes(hash, challengeId);
+    }
+  }
+
+  async makeRequest(challengeId, round) {
+    const challenge = this.challenges[challengeId];
+    console.log(`About to send request ${challengeId} for ${round}`);
+    challenge.requests[round] = { pending: true };
+    challenge.pending.push(round);
+    const requestTx = await this.sendRequest(challengeId, round, { from: this.challenger });
+    console.log(`Send request ${requestTx.tx}`);
+  }
+
+  verifyHashes(hash, challengeId) {
+    const challenge = this.challenges[challengeId];
+    if (!challenge) {
+      console.log(`Not valid challenge id ${challengeId}`);
+      return;
+    }
+    const submission = this.submissions[hash];
+    if (!submission) {
+      console.log(`Not valid hash ${hash}`);
+      return;
+    }
+
+    if (!challenge.invalidHashes) {
+      const rounds = Object.keys(challenge.hashes);
+      const invalidHashes = rounds.filter(round => `0x${submission.intermediate[round].output_hash}` !== challenge.hashes[round]);
+
+      challenge.invalidHashes = invalidHashes;
+      if (invalidHashes.length > 0) {
+        console.log(`Some hashes didn't match ${invalidHashes.length}`);
       } else {
-        console.log('Hashes received match calculated from data, no need to request data');
+        console.log(`Hashes match precalculated ${rounds.length}`);
         if (config.testMode) {
-          this.makeRequest(challengeId, 0);
+          challenge.invalidHashes = rounds;
         }
       }
+    }
+
+    if (challenge.invalidHashes.length > 0) {
+      const count = challenge.pending.length;
+      if (count === challenge.invalidHashes.length) {
+        console.log(`All challenges completed ${challenge.invalidHashes.length}`);
+      } else {
+        //const nextRequest = challenge.invalidHashes[challenge.invalidHashes.length - 1 - count];
+        const nextRequest = challenge.invalidHashes[count];
+        this.makeRequest(challengeId, nextRequest);
+      }
+    } else {
+      console.log('All hashes found were valid');
     }
   }
 
@@ -105,7 +134,7 @@ class ChallengeAgent extends BaseAgent {
     if (challenge && challenge.hash === hash) {
       const start = parseInt(dataHashes.args.start);
       const length = parseInt(dataHashes.args.length);
-      this.verifyHashes(hash, challengeId, start, length)
+      this.processHashes(hash, challengeId, start, length)
     } else {
       console.log(`Not valid challenge hash: ${hash}, id: ${challengeId}`);
     }
@@ -115,7 +144,10 @@ class ChallengeAgent extends BaseAgent {
   }
 
   onRoundVerified(roundResult) {
-    console.log(`RoundVerified ${JSON.stringify(roundResult, null, '  ')}`);
+    const { challengeId, hash, round: strRound } = roundResult.args;
+    const round = parseInt(strRound, 10);
+    console.log(`RoundVerified hash: ${hash}, round: ${round}`);
+    this.verifyHashes(hash, challengeId);
   }
 }
 
