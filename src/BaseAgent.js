@@ -2,28 +2,6 @@ const fs = require('fs');
 
 const utils = require('./utils');
 
-// const Contract = require('truffle-contract');
-// const Web3 = require('web3');
-// const makeScryptVerifier = require('./ScryptVerifier');
-
-// const ScryptVerifierJson = require('../build/contracts/ScryptVerifier.json');
-//
-// const provider = new Web3.providers.HttpProvider('http://localhost:8545');
-// const web3 = new Web3(provider);
-//
-// const ScryptVerifier = Contract(ScryptVerifierJson);
-// ScryptVerifier.setProvider(provider);
-// ScryptVerifier.defaults({
-//   from: web3.eth.accounts[0],
-//   gas: 4700000,
-// });
-// // ScryptTest.synchronization_timeout = 1000;
-//
-// let scryptVerifier;
-//
-// this.submitter = web3.eth.accounts[0];
-// this.challenger = web3.eth.accounts[1];
-// this.scryptVerifier = await ScryptVerifier.deployed();
 
 class BaseAgent {
   constructor(scryptVerifier) {
@@ -122,15 +100,19 @@ class BaseAgent {
     return this.scryptVerifier.sendHashes(challengeId, start, hashes, options);
   }
 
-  async sendRequest(challengeId, round, options) {
-    const requestTx = await this.scryptVerifier.request(challengeId, round, options);
-    console.log(`SendRequest: ${JSON.stringify(requestTx, null, '  ')}`);
-    return utils.parseNewRequest(requestTx);
+  getHashes(hash, start, length) {
+    return this.scryptVerifier.getHashes.call(hash, start, length, 10);
+  }
+
+  sendRequest(challengeId, round, options) {
+    return this.scryptVerifier.request(challengeId, round, options);
+    // console.log(`SendRequest: ${JSON.stringify(requestTx, null, '  ')}`);
+    // return utils.parseNewRequest(requestTx);
   }
 
   sendRound(challengeId, round, data, extraData, options) {
-    console.log(`${challengeId}, ${JSON.stringify(data, null, '  ')}`);
-    return this.scryptVerifier.sendData(challengeId, 10, data, [], options);
+    console.log(`Send round ${challengeId}, ${JSON.stringify(data, null, '  ')}`);
+    return this.scryptVerifier.sendData(challengeId, round, data, extraData, options);
   }
 
   onNewSubmission(submissionData) {
@@ -150,7 +132,7 @@ class BaseAgent {
   }
 
   onRoundVerified(roundResult) {
-    console.log(`BA: New data hashes: ${JSON.stringify(roundResult, null, '  ')}`);
+    console.log(`BA: Round verified: ${JSON.stringify(roundResult, null, '  ')}`);
   }
 }
 

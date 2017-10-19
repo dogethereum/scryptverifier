@@ -226,6 +226,14 @@ contract ScryptVerifier is ScryptVerifierData {
         return (r.kind, r.data[0], r.data[1], r.data[2], r.data[3], r.hash);
     }
 
+    function getHashes(bytes32 hash, uint start, uint length, uint step) constant public returns (bytes32[] hashes) {
+      hashes = new bytes32[](length);
+      for (uint i=0; i<length; ++i) {
+        hashes[i] = submissions[hash].rounds[start + i * step].hash;
+      }
+      return hashes;
+    }
+
     function concatenate(uint[4] _input) internal returns (bytes res) {
         res = new bytes(4*32);
         for (uint i=0; i<4; ++i) {
