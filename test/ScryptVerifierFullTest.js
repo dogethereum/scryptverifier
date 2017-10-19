@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const crypto = require('crypto');
 const ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
 const utils = require('../src/utils');
+const scryptsy = require('../scryptsy');
 
 contract('ScryptVerifier Full Rounds', function(accounts) {
   const submitter = accounts[0];
@@ -15,9 +15,11 @@ contract('ScryptVerifier Full Rounds', function(accounts) {
   describe('...', () => {
     before(async function () {
       scryptVerifier = await ScryptVerifier.deployed();
-      runData = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/run.json'), 'utf8'));
-      blockHeader = `0x${runData[0].input}`;
-      blockHash = `0x${runData[2049].output}`;
+      const input = crypto.randomBytes(80);
+      const [ output, intermediate ] = await scryptsy(input);
+      runData = intermediate;
+      blockHeader = `0x${input.toString('hex')}`;
+      blockHash = `0x${output.toString('hex')}`;
     })
     it("Initialize block data", async function() {
       const submit = await scryptVerifier.submit(blockHash, blockHeader, 0, { from: submitter });

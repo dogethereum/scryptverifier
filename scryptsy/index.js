@@ -20,14 +20,14 @@ class ScryptOutput {
   callback(input, output, step, extra) {
     const round = { step };
     if (step === 0) {
-      round.input = be2le(input).toString('hex');
+      round.input = input.toString('hex');
       round.input_hash = sha3(Buffer.from(round.input, 'hex')).toString('hex');
       round.output = be2le(output).toString('hex');
       round.output_hash = sha3(Buffer.from(round.output, 'hex')).toString('hex');
     } else if (step === 2049) {
       round.input = be2le(input).toString('hex');
       round.input_hash = sha3(Buffer.from(round.input, 'hex')).toString('hex');
-      round.output = output.reverse().toString('hex');
+      round.output = output.toString('hex');
       round.output_hash = sha3(Buffer.from(round.output, 'hex')).toString('hex');
     } else {
       round.input = be2le(input).toString('hex');
