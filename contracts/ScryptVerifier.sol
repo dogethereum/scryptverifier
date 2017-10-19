@@ -101,7 +101,6 @@ contract ScryptVerifier is ScryptVerifierData {
         NewDataArrived(challengeId, hash, round);
 
         uint step = round;
-        bool correct = true;
         uint numRounds;
         if (round == 1020) {
           numRounds = 4;
@@ -111,7 +110,7 @@ contract ScryptVerifier is ScryptVerifierData {
           numRounds = ROUNDS_PER_CYCLE;
         }
         roundData2 = roundData;
-        for (uint i=0; i<numRounds && correct; ++i) {
+        for (uint i=0; i<numRounds; ++i) {
             step += 1;
             if (step > 1024 && step <= 2048) {
                 sendExtra(submissionData, roundData2.data[2], [
@@ -122,16 +121,15 @@ contract ScryptVerifier is ScryptVerifierData {
                 ]);
             }
             roundData2 = executeStep(hash, step);
-            if (roundData2.kind == 2) {
-                if (submissionData.rounds[step].kind == 1) {
-                    assert(submissionData.rounds[step].hash == roundData2.hash);
-                }
-                submissionData.rounds[step] = roundData2;
-            } else {
-                correct = false;
+            assert(roundData2.kind == 2);
+            if (submissionData.rounds[step].kind == 1) {
+                assert(submissionData.rounds[step].hash == roundData2.hash);
             }
+            if (step == 2049) {
+                assert(bytes32(roundData2.data[0]) == hash);
+            }
+            submissionData.rounds[step] = roundData2;
         }
-        assert(correct);
         RoundVerified(challengeId, hash, round, step);
     }
 
@@ -174,9 +172,8 @@ contract ScryptVerifier is ScryptVerifierData {
 
         if (step == 0) {
             bytes32[4] memory temp;
-            temp4 = swap4bytes(submissionData.input);
+            temp4 = submissionData.input;
             temp = KeyDeriv.pbkdf2(temp4, temp4, 128);
-            //temp = KeyDeriv.pbkdf2(submissionData.input, submissionData.input, 128);
             result = b32enc(temp);
         } else if (step <= 1024) {
             round = submissionData.rounds[step - 1];
@@ -207,9 +204,9 @@ contract ScryptVerifier is ScryptVerifierData {
                 return makeRoundWithoutData(5);
             }
             bytes memory salt = concatenate(round.data);
-            temp4 = swap4bytes(submissionData.input);
+            temp4 = submissionData.input;
             bytes32[4] memory temp3 = KeyDeriv.pbkdf2(temp4, salt, 32);
-            bytes32 output = bytes32(reverse(uint(temp3[0])));
+            bytes32 output = temp3[0];
             result[0] = uint(output);
         } else {
             return makeRoundWithoutData(6);
