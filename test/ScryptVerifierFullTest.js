@@ -12,7 +12,7 @@ contract('ScryptVerifier Full Rounds', function(accounts) {
   let blockHash;
   let challengeId;
 
-  describe.only('...', () => {
+  describe('...', () => {
     before(async function () {
       scryptVerifier = await ScryptVerifier.deployed();
       runData = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/run.json'), 'utf8'));
