@@ -24,7 +24,7 @@ class ResponseAgent extends BaseAgent {
     const [, input, ] = await this.getSubmission(hash);
     console.log(`Challenge input: ${input}`);
     const [ result, intermediate ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
-    const resultHash = `0x${result.reverse().toString('hex')}`;
+    const resultHash = `0x${result.toString('hex')}`;
     if (resultHash === hash) {
       this.submissions[hash] = {
         input,
@@ -33,7 +33,7 @@ class ResponseAgent extends BaseAgent {
       this.challenges[challengeId] = hash;
       this.replyChallenge(challengeId);
     } else {
-      console.log(`Result didn't match ${hash} != ${hashResult}`);
+      console.log(`Result didn't match ${hash} != ${resultHash}`);
     }
   }
 
@@ -80,7 +80,14 @@ class ResponseAgent extends BaseAgent {
         }
       }
     }
-    const sendRoundTx = await this.sendRound(challengeId, round, roundInput, extraInputs, { from: this.responder });
+    try {
+      const sendRoundTx = await this.sendRound(challengeId, round, roundInput, extraInputs, { from: this.responder });
+      console.log(`Send data id: ${challengeId}, round: ${round}, tx: ${sendRoundTx.tx}`);
+    } catch (ex) {
+      console.log(ex);
+      console.log(ex.stack);
+      console.log(JSON.stringify({ round, roundInput, extraInputs }, null, '  '));
+    }
   }
 
   onNewSubmission(submissionData) {

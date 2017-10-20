@@ -32,7 +32,7 @@ class ChallengeAgent extends BaseAgent {
 
   async processSubmission(hash, input) {
     const [ result, intermediate ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
-    const resultHash = `0x${result.reverse().toString('hex')}`;
+    const resultHash = `0x${result.toString('hex')}`;
     this.submissions[hash] = {
       input,
       resultHash,
@@ -110,8 +110,8 @@ class ChallengeAgent extends BaseAgent {
       if (count === challenge.invalidHashes.length) {
         console.log(`All challenges completed ${challenge.invalidHashes.length}`);
       } else {
-        //const nextRequest = challenge.invalidHashes[challenge.invalidHashes.length - 1 - count];
-        const nextRequest = challenge.invalidHashes[count];
+        const nextRequest = challenge.invalidHashes[challenge.invalidHashes.length - 1 - count];
+        // const nextRequest = challenge.invalidHashes[count];
         this.makeRequest(challengeId, nextRequest);
       }
     } else {
