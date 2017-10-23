@@ -1,11 +1,8 @@
 const express = require('express');
+const Submissions = require('./submissions');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.json({
-    hello: 'World!',
-  });
-});
+router.use('/submission', Submissions);
 
 module.exports = router;
