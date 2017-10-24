@@ -218,6 +218,24 @@ contract ScryptVerifier is ScryptVerifierData {
         return makeRoundWithData(newHash, result);
     }
 
+    function getNumSubmissions() constant public returns (uint) {
+      return numSubmissions;
+    }
+    function getSubmission(bytes32 hash) constant public returns (bytes32 _hash, bytes input, address submitter, uint timestamp) {
+
+      SubmissionData storage submission = submissions[hash];
+      if (submission.submitter != 0x0) {
+        return (submission.hash, submission.input, submission.submitter, submission.submitTime);
+      }
+    }
+
+    function getSubmissionsHashes(uint start, uint count) constant public returns (bytes32[] result) {
+      result = new bytes32[](count);
+      for (uint i=0; i<count; ++i) {
+        result[i] = indexSubmissions[start+i];
+      }
+    }
+
     function getRoundData(bytes32 hash, uint step) constant public returns (uint8, uint, uint, uint, uint, bytes32) {
         RoundData storage r = submissions[hash].rounds[step];
         return (r.kind, r.data[0], r.data[1], r.data[2], r.data[3], r.hash);
