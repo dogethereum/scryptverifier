@@ -1,5 +1,5 @@
 const ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
-const utils = require('../src/utils');
+const utils = require('../src/agents/utils');
 
 contract('ScryptVerifier 1st half', function(accounts) {
   const submitter = accounts[0];

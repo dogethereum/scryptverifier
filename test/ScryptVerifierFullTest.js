@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const ScryptVerifier = artifacts.require("./ScryptVerifier.sol");
-const utils = require('../src/utils');
+const utils = require('../src/agents/utils');
 const scryptsy = require('../scryptsy');
 
 contract('ScryptVerifier Full Rounds', function(accounts) {
