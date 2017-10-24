@@ -4,6 +4,14 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+function formatHash(hash, length = 24) {
+  if (hash.length > length) {
+    return `${hash.substring(0, length - 2)}..`;
+  }
+  return hash;
+}
+
+
 const Submissions = (props) => {
   const { submissions } = props;
   return (
@@ -20,8 +28,8 @@ const Submissions = (props) => {
         <Table.Body>
           {submissions.map(submission => (
             <Table.Row key={submission.hash}>
-              <Table.Cell>{submission.hash}</Table.Cell>
-              <Table.Cell>{submission.input}</Table.Cell>
+              <Table.Cell>{formatHash(submission.hash, 40)}</Table.Cell>
+              <Table.Cell>{formatHash(submission.input, 40)}</Table.Cell>
               <Table.Cell>{submission.timestamp}</Table.Cell>
               <Table.Cell>Pending</Table.Cell>
             </Table.Row>

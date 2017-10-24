@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Grid,
   Header,
+  Loader,
 } from 'semantic-ui-react';
 import {
   getSubmissions,
@@ -11,7 +12,11 @@ import SubmissionsComponent from '../components/Submissions';
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      loading: false,
+      error: false,
+      data: {},
+    };
   }
 
   componentDidMount() {
@@ -36,8 +41,8 @@ class Home extends React.Component {
       loading,
       error,
       data: {
-        submissions = []
-      } = {}
+        submissions = [],
+      },
     } = this.state;
     return (
       <Grid>
@@ -48,6 +53,7 @@ class Home extends React.Component {
         </Grid.Row>
         <Grid.Row>
           <Grid.Column>
+            <Loader active={loading} inline="centered" />
             <SubmissionsComponent submissions={submissions} />
           </Grid.Column>
         </Grid.Row>
