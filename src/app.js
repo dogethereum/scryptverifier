@@ -3,7 +3,7 @@ const logger = require('morgan');
 const bodyParser = require('body-parser');
 const http = require('http');
 const cors = require('cors');
-const config = require('./config');
+const config = require('../config');
 const api = require('./routes');
 
 function createApp() {
