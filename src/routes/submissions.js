@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/', async (re, res) => {
   try {
-    const submissions = await Submissions.listSubmissions();
+    const { submissions } = await Submissions.listSubmissions();
     res.json({
       submissions,
     });
