@@ -1,5 +1,5 @@
 const Contract = require('truffle-contract');
-const ScryptVerifierJson = require('../build/contracts/ScryptVerifier.json');
+const ScryptVerifierJson = require('../../build/contracts/ScryptVerifier.json');
 
 
 function makeScryptVerifier(provider, options) {

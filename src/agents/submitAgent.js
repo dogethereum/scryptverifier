@@ -4,7 +4,7 @@ const Web3 = require('web3');
 const makeScryptVerifier = require('./ScryptVerifier');
 const BaseAgent = require('./BaseAgent');
 const config = require('./config');
-const scryptsy = require('../scryptsy');
+const scryptsy = require('../../scryptsy');
 
 
 class SubmitAgent extends BaseAgent {
