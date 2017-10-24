@@ -9,8 +9,10 @@ contract ScryptVerifier is ScryptVerifierData {
 
     mapping (bytes32 => SubmissionData) public submissions;
     mapping (bytes32 => ChallengeData) public challenges;
+    mapping (uint => bytes32) indexSubmissions;
+    uint numSubmissions;
 
-    event NewSubmission(bytes32 indexed hash, bytes input);
+    event NewSubmission(bytes32 indexed hash, bytes input, uint index);
     event ExistingSubmission(bytes32 indexed hash, bytes input);
     event NewChallenge(bytes32 indexed challengeId, bytes32 indexed hash);
     event ExistingDataHash(bytes32 indexed challengeId, bytes32 indexed hash, uint start);
@@ -30,8 +32,10 @@ contract ScryptVerifier is ScryptVerifierData {
 
     function submit(bytes32 hash, bytes input, address notify) public {
         if (submissions[hash].submitter == 0) {
-          submissions[hash] = makeSubmissionData(msg.sender, input, hash, notify);
-          NewSubmission(hash, input);
+          submissions[hash] = makeSubmissionData(msg.sender, input, hash, notify, numSubmissions);
+          indexSubmissions[numSubmissions] = hash;
+          NewSubmission(hash, input, numSubmissions);
+          ++numSubmissions;
         } else {
           ExistingSubmission(hash, input);
         }
@@ -160,23 +164,18 @@ contract ScryptVerifier is ScryptVerifierData {
         return false;
     }
 
-    function executeStep(bytes32 _hash, uint step) internal returns (RoundData) {
+    function executeStep(bytes32 hash, uint step) internal returns (RoundData) {
         uint[4] memory result;
-        RoundData memory round;
-        bytes memory temp4;
 
-        SubmissionData storage submissionData = submissions[_hash];
-        if (submissionData.hash != _hash) {
+        SubmissionData storage submissionData = submissions[hash];
+        if (submissionData.hash != hash) {
             return makeRoundWithoutData(1);
         }
 
         if (step == 0) {
-            bytes32[4] memory temp;
-            temp4 = submissionData.input;
-            temp = KeyDeriv.pbkdf2(temp4, temp4, 128);
-            result = b32enc(temp);
+            result = fixEndianness(KeyDeriv.pbkdf2(submissionData.input, submissionData.input, 128));
         } else if (step <= 1024) {
-            round = submissionData.rounds[step - 1];
+            RoundData storage round = submissionData.rounds[step - 1];
             if (round.kind != 2) {
                 return makeRoundWithoutData(2);
             }
@@ -188,37 +187,35 @@ contract ScryptVerifier is ScryptVerifierData {
             }
             uint idx = round.data[2];
             idx = (idx / 256**28) % 1024;
-            RoundData storage temp2 = submissionData.rounds[idx];
-            if (temp2.kind != 2) {
+            RoundData storage extraRound = submissionData.rounds[idx];
+            if (extraRound.kind != 2) {
                 return makeRoundWithoutData(4);
             }
             result = Salsa8.round([
-                round.data[0] ^ temp2.data[0],
-                round.data[1] ^ temp2.data[1],
-                round.data[2] ^ temp2.data[2],
-                round.data[3] ^ temp2.data[3]
+                round.data[0] ^ extraRound.data[0],
+                round.data[1] ^ extraRound.data[1],
+                round.data[2] ^ extraRound.data[2],
+                round.data[3] ^ extraRound.data[3]
             ]);
         } else if (step == 2049) {
             round = submissionData.rounds[step - 1];
             if (round.kind != 2) {
                 return makeRoundWithoutData(5);
             }
-            bytes memory salt = concatenate(round.data);
-            temp4 = submissionData.input;
-            bytes32[4] memory temp3 = KeyDeriv.pbkdf2(temp4, salt, 32);
-            bytes32 output = temp3[0];
-            result[0] = uint(output);
+            bytes memory salt = makeSalt(round.data);
+            bytes32[4] memory output = KeyDeriv.pbkdf2(submissionData.input, salt, 32);
+            result[0] = uint(output[0]);
         } else {
             return makeRoundWithoutData(6);
         }
 
-        bytes32 hash;
+        bytes32 newHash;
         if (step == 2049) {
-            hash = sha3(result[0]);
+            newHash = sha3(result[0]);
         } else {
-            hash = sha3(result[0], result[1], result[2], result[3]);
+            newHash = sha3(result[0], result[1], result[2], result[3]);
         }
-        return makeRoundWithData(hash, result);
+        return makeRoundWithData(newHash, result);
     }
 
     function getRoundData(bytes32 hash, uint step) constant public returns (uint8, uint, uint, uint, uint, bytes32) {
@@ -234,7 +231,7 @@ contract ScryptVerifier is ScryptVerifierData {
       return hashes;
     }
 
-    function concatenate(uint[4] _input) internal returns (bytes res) {
+    function makeSalt(uint[4] _input) internal returns (bytes res) {
         res = new bytes(4*32);
         for (uint i=0; i<4; ++i) {
             for (uint j=0; j<32; j+=4) {
@@ -246,40 +243,23 @@ contract ScryptVerifier is ScryptVerifierData {
         }
     }
 
-    function reverse(uint _input) internal returns (uint _output) {
-        for (uint i=0; i<32; ++i) {
-            _output |= ((_input / 0x100**(31 - i)) & 0xFF) * 0x100**i;
-        }
-    }
-
-    function swap4bytes(bytes input) internal returns (bytes output) {
-        output = new bytes(input.length);
-        for (uint i=0; i<input.length; i+=4) {
-          output[i + 0] = input[i + 3];
-          output[i + 1] = input[i + 2];
-          output[i + 2] = input[i + 1];
-          output[i + 3] = input[i + 0];
-        }
-    }
-
-    function b32enc32(uint32 a) internal returns (uint32 b) {
-        uint32 c;
+    function fixEndianness32(uint32 a) internal returns (uint32 b) {
         for (uint i=0; i<4; ++i) {
-            c = uint32((a / 0x100**i) & 0xFF);
-            b += c * uint32(0x100**(3-i));
+            b = 0x100 * b + (a & 0xFF);
+            a /= 0x100;
         }
     }
 
-    function b32enc256(uint a) internal returns (uint b) {
+    function fixEndianness256(uint a) internal returns (uint b) {
         for (uint i=0; i<8; ++i) {
-            uint32 c = uint32((a / 0x100000000**i) & 0xFFFFFFFF);
-            b += b32enc32(c) * 0x100000000**i;
+            b += fixEndianness32(uint32(a & 0xFFFFFFFF )) * 0x100000000**i;
+            a /= 0x100000000;
         }
     }
 
-    function b32enc(bytes32[4] abraka) internal returns (uint[4] dabra) {
+    function fixEndianness(bytes32[4] abraka) internal returns (uint[4] dabra) {
         for (uint i=0; i<4; ++i) {
-            dabra[i] = b32enc256(uint(abraka[i]));
+            dabra[i] = fixEndianness256(uint(abraka[i]));
         }
     }
 
