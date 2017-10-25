@@ -15,11 +15,16 @@ export function getEvents() {
   return fetchJson('event');
 }
 
+export function getSubmission(hash) {
+  return fetchJson(`submission/${hash}`);
+}
+
 export function getSubmissions() {
   return fetchJson('submission');
 }
 
 export default {
   getEvents,
+  getSubmission,
   getSubmissions,
 };

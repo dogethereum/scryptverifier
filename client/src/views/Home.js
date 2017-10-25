@@ -5,10 +5,11 @@ import {
   Loader,
 } from 'semantic-ui-react';
 import {
+  getSubmission,
   getSubmissions,
 } from '../lib/Api';
 import SubmissionsComponent from '../components/Submissions';
-import { subscribeNotifications } from '../lib/Notifications'
+import { subscribeNotifications } from '../lib/Notifications';
 
 class Home extends React.Component {
   constructor(props) {
@@ -24,6 +25,9 @@ class Home extends React.Component {
     this.loadData();
     if (!this.socket) {
       this.socket = subscribeNotifications();
+      this.socket.on('newSubmission', (hash) => {
+        this.updateData(hash);
+      });
     }
   }
 
@@ -45,6 +49,17 @@ class Home extends React.Component {
       this.setState({ loading: false, error: false, data });
     } catch (ex) {
       this.setState({ loading: false, error: true });
+    }
+  }
+
+  async updateData(hash) {
+    try {
+      const { submission } = await getSubmission(hash);
+      const submissions = [...this.state.data.submissions, submission];
+      const data = Object.assign({}, this.state.data, { submissions });
+      this.setState({ data });
+    } catch (ex) {
+      // !
     }
   }
 
