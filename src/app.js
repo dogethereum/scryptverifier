@@ -5,6 +5,7 @@ const http = require('http');
 const cors = require('cors');
 const config = require('./config');
 const api = require('./routes');
+const notifications = require('./controllers/notifications');
 
 function createApp() {
   const app = express();
@@ -25,7 +26,6 @@ function createApp() {
 
   // error handler
   app.use((err, req, res, next) => {
-    next;
     // set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -43,6 +43,7 @@ function startServer() {
   const app = createApp();
   app.port = port;
   const server = http.createServer(app);
+  notifications.installNotifications(server);
   server.listen(port, () => {
     console.log(`App started at ${port}`);
   });
