@@ -8,6 +8,7 @@ import {
   getSubmissions,
 } from '../lib/Api';
 import SubmissionsComponent from '../components/Submissions';
+import { subscribeNotifications } from '../lib/Notifications'
 
 class Home extends React.Component {
   constructor(props) {
@@ -21,6 +22,17 @@ class Home extends React.Component {
 
   componentDidMount() {
     this.loadData();
+    if (!this.socket) {
+      this.socket = subscribeNotifications();
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.socket) {
+      this.socket.emit('unregister');
+      this.socket.close();
+      this.socket = null;
+    }
   }
 
   async loadData() {
