@@ -4,6 +4,7 @@ import {
   Header,
   Loader,
 } from 'semantic-ui-react';
+import _ from 'lodash';
 import {
   getSubmission,
   getSubmissions,
@@ -44,7 +45,7 @@ class Home extends React.Component {
       this.setState({ loading: true, error: false });
       const { submissions } = await getSubmissions();
       const data = {
-        submissions,
+        submissions: _.orderBy(submissions, ['timestamp'], ['desc']),
       };
       this.setState({ loading: false, error: false, data });
     } catch (ex) {
@@ -55,7 +56,7 @@ class Home extends React.Component {
   async updateData(hash) {
     try {
       const { submission } = await getSubmission(hash);
-      const submissions = [...this.state.data.submissions, submission];
+      const submissions = _.orderBy([...this.state.data.submissions, submission], ['timestamp'], ['desc']);
       const data = Object.assign({}, this.state.data, { submissions });
       this.setState({ data });
     } catch (ex) {
