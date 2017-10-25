@@ -1,16 +1,17 @@
 const express = require('express');
-const logger = require('morgan');
+const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const http = require('http');
 const cors = require('cors');
 const config = require('./config');
 const api = require('./routes');
-const notifications = require('./controllers/notifications');
+const logger = require('./controllers/logger');
+const scryptVerifier = require('./controllers/scryptVerifier');
 
 function createApp() {
   const app = express();
 
-  app.use(logger('dev'));
+  app.use(morgan('dev'));
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(cors());
@@ -25,7 +26,7 @@ function createApp() {
   });
 
   // error handler
-  app.use((err, req, res, next) => {
+  app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     // set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -43,9 +44,9 @@ function startServer() {
   const app = createApp();
   app.port = port;
   const server = http.createServer(app);
-  notifications.installNotifications(server);
+  scryptVerifier.installEventListener(server);
   server.listen(port, () => {
-    console.log(`App started at ${port}`);
+    logger.info(`App started at ${port}`);
   });
 }
 

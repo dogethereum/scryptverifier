@@ -1,4 +1,5 @@
 const socket = require('socket.io');
+const logger = require('./logger');
 
 let connections = [];
 
@@ -15,20 +16,33 @@ function registerNotifications(conn) {
   connections.push(conn);
 }
 
+function sendNotification(...data) {
+  const toRemove = [];
+  connections.forEach((conn) => {
+    try {
+      conn.emit(...data);
+    } catch (ex) {
+      toRemove.push(conn);
+    }
+  });
+  toRemove.forEach(removeConnection);
+}
+
+
 function installNotifications(server) {
   const io = socket.listen(server);
   io.on('connection', (conn) => {
-    console.log(`New connection ${conn.id}`);
+    logger.info(`New connection ${conn.id}`);
     conn.on('register', () => {
-      console.log(`Register ${conn.id}`);
+      logger.info(`Register ${conn.id}`);
       registerNotifications(conn);
     });
     conn.on('unregister', () => {
-      console.log(`Unregister ${conn.id}`);
+      logger.info(`Unregister ${conn.id}`);
       unregisterNotifications(conn);
     });
     conn.on('disconnect', () => {
-      console.log(`Disconnect ${conn.id}`);
+      logger.info(`Disconnect ${conn.id}`);
       removeConnection(conn);
     });
   });
@@ -37,5 +51,6 @@ function installNotifications(server) {
 module.exports = {
   installNotifications,
   registerNotifications,
+  sendNotification,
   unregisterNotifications,
 };
