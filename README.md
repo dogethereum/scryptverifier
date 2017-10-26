@@ -19,6 +19,26 @@ In same the directory with package.json install project dependencies
 $ npm install
 ```
 
+### Edit configuration
+
+There two configuration files
+
+*   config.js: Contains general configuration parameters like ethereum node, port
+
+*   local_config.json: Used to store values that cannot be commited like passwords.
+
+    It needs two parameters: `wallet`, and `pass`.
+
+    *   wallet: It is the content of Ethereum Wallet v3 format (or UTC file).
+    *   pass: Password for the wallet.
+
+    ```json
+    {
+      "wallet": {"address": "...","crypto": ...},
+      "pass": "ThisIsWalletPassword"
+    }
+    ```    
+
 ### Deploy contracts
 
 Before running testing script contracts should be deployed
