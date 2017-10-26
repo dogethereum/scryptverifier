@@ -77,10 +77,10 @@ class BaseAgent {
   }
 
   termEvents() {
-    if (this.newChallengeEvent) this.newChallengeEvent.stopWatching();
-    if (this.newRequestEvent) this.newRequestEvent.stopWatching();
-    if (this.newSubmissionEvent) this.newSubmissionEvent.stopWatching();
-    if (this.newDataHashesEvent) this.newDataHashesEvent.stopWatching();
+    // if (this.newChallengeEvent) this.newChallengeEvent.stopWatching();
+    // if (this.newRequestEvent) this.newRequestEvent.stopWatching();
+    // if (this.newSubmissionEvent) this.newSubmissionEvent.stopWatching();
+    // if (this.newDataHashesEvent) this.newDataHashesEvent.stopWatching();
   }
 
   async sendChallenge(hash, options) {
