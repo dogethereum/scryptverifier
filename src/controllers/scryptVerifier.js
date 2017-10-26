@@ -16,8 +16,7 @@ function registerEvent(event, callback) {
   });
 }
 
-async function installEventListener(server) {
-  notification.installNotifications(server);
+async function installEventListener() {
   const scryptVerifier = await ethereum.getScryptVerifier();
   registerEvent(scryptVerifier.NewSubmission(), (result) => {
     const { hash, input } = result.args;

@@ -3,9 +3,10 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const http = require('http');
 const cors = require('cors');
-const config = require('./config');
+const config = require('../config');
 const api = require('./routes');
 const logger = require('./controllers/logger');
+const notification = require('./controllers/notifications');
 const scryptVerifier = require('./controllers/scryptVerifier');
 
 function createApp() {
@@ -44,7 +45,8 @@ function startServer() {
   const app = createApp();
   app.port = port;
   const server = http.createServer(app);
-  scryptVerifier.installEventListener(server);
+  notification.installNotifications(server);
+  scryptVerifier.installEventListener();
   server.listen(port, () => {
     logger.info(`App started at ${port}`);
   });

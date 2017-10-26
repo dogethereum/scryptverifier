@@ -3,7 +3,7 @@ const fs = require('fs');
 let config = {
   port: 3001,
   host: 'http://localhost',
-  rpcpath: 'https://localhost:8545',
+  rpcpath: 'http://localhost:8545',
 };
 
 try {
