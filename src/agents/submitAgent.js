@@ -47,7 +47,6 @@ async function main() {
   try {
     const scryptVerifier = await ethereum.getScryptVerifier({
       wallet: config.wallet,
-      pass: config.pass,
     });
 
     const submitAgent = new SubmitAgent(scryptVerifier, config.wallet.address);

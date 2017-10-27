@@ -1,5 +1,6 @@
 const Web3 = require('web3');
-const ethereumWallet = require('ethereumjs-wallet');
+const bip39 = require('bip39');
+const hdkey = require('ethereumjs-wallet/hdkey');
 const Contract = require('truffle-contract');
 const ProviderEngine = require('web3-provider-engine');
 const FiltersSubprovider = require('web3-provider-engine/subproviders/filters.js');
@@ -14,7 +15,10 @@ function createProvider(options = {}) {
   const engine = new ProviderEngine();
 
   if (options.wallet) {
-    const wallet = ethereumWallet.fromV3(options.wallet, options.pass);
+    const mnemonic = options.wallet.seed;
+    const hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonic));
+    const path = "m/44'/60'/0'/0/0";
+    const wallet = hdwallet.derivePath(path).getWallet();
     engine.addProvider(new WalletSubprovider(wallet, {}));
   }
 
