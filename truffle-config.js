@@ -31,5 +31,11 @@ module.exports = {
       gas: 4600000,
       gasPrice: 20000000000,
     },
+    rinkeby: {
+      provider: engine,
+      network_id: 4,
+      gas: 6100000,
+      gasPrice: 20000000000,
+    },
   },
 };
