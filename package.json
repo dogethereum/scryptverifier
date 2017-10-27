@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/oscarguindzberg/dogeethpriv#readme",
   "dependencies": {
+    "bip39": "^2.4.0",
     "body-parser": "^1.18.2",
     "cors": "^2.8.4",
     "ethereumjs-wallet": "^0.6.0",
