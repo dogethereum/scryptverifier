@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const BaseAgent = require('./BaseAgent');
 const config = require('../../config');
 const scryptsy = require('../../scryptsy');
-const ethereum = require('../controllers/ethereum');
+const Verifier = require('../controllers/verifier');
 
 class SubmitAgent extends BaseAgent {
   constructor(scryptVerifier, submitter) {
@@ -45,9 +45,12 @@ class SubmitAgent extends BaseAgent {
 
 async function main() {
   try {
-    const scryptVerifier = await ethereum.getScryptVerifier({
+    const scryptVerifier = await (new Verifier({
       wallet: config.wallet,
-    });
+      defaults: {
+        gas: 4000000,
+      },
+    })).getScryptVerifier();
 
     const submitAgent = new SubmitAgent(scryptVerifier, config.wallet.address);
 

@@ -7,7 +7,7 @@ const config = require('../config');
 const api = require('./routes');
 const logger = require('./controllers/logger');
 const notification = require('./controllers/notifications');
-const scryptVerifier = require('./controllers/scryptVerifier');
+const verifier = require('./controllers/verifier');
 
 function createApp() {
   const app = express();
@@ -46,7 +46,7 @@ function startServer() {
   app.port = port;
   const server = http.createServer(app);
   notification.installNotifications(server);
-  scryptVerifier.installEventListener();
+  verifier.installEventListener();
   server.listen(port, () => {
     logger.info(`App started at ${port}`);
   });

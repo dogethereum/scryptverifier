@@ -25,17 +25,17 @@ There two configuration files
 
 *   config.js: Contains general configuration parameters like ethereum node, port
 
-*   local_config.json: Used to store values that cannot be commited like passwords.
+*   local_config.json: Used to store values that cannot be commited
+    like seeds. It needs two wallet: submitter and challenger:
 
-    It needs two parameters: `wallet`, and `pass`.
-
-    *   wallet: It is the content of Ethereum Wallet v3 format (or UTC file).
-    *   pass: Password for the wallet.
+    For each one two parameters: `seed`, and `address`.
 
     ```json
     {
-      "wallet": {"address": "...","crypto": ...},
-      "pass": "ThisIsWalletPassword"
+      "submitter": {
+        "seed": "...",
+        "address": "..."
+      }
     }
     ```    
 

@@ -1,7 +1,4 @@
-const fs = require('fs');
-
 const utils = require('./utils');
-
 
 class BaseAgent {
   constructor(scryptVerifier) {
