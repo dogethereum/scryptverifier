@@ -5,19 +5,27 @@ const config = require('../../config');
 const scryptsy = require('../../scryptsy');
 const Verifier = require('../controllers/verifier');
 
+function Timeout(timeout) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, timeout);
+  });
+}
+
 class SubmitAgent extends BaseAgent {
   constructor(scryptVerifier, submitter) {
     super(scryptVerifier);
     this.submitter = submitter;
   }
 
-  async run(inputs) {
-    inputs.forEach(async (input) => {
+  async run(repeat) {
+    while (repeat) {
+      const input = crypto.randomBytes(80);
       const [hash] = await scryptsy(input);
       console.log(`BlockHeader: ${input.toString('hex')}`);
       console.log(`BlockHash: ${hash.toString('hex')}`);
       await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.submitter });
-    });
+      await Timeout(30000);
+    }
   }
 
   static async onNewSubmission(submissionData) {
@@ -46,25 +54,15 @@ class SubmitAgent extends BaseAgent {
 async function main() {
   try {
     const scryptVerifier = await (new Verifier({
-      wallet: config.wallet,
+      wallet: config.submitter,
       defaults: {
         gas: 4000000,
       },
     })).getScryptVerifier();
 
-    const submitAgent = new SubmitAgent(scryptVerifier, config.wallet.address);
+    const submitAgent = new SubmitAgent(scryptVerifier, config.submitter.address);
 
-    const submissions = [];
-
-    if (process.argv.length > 2) {
-      if (process.argv[2] === '-r') {
-        submissions.push(crypto.randomBytes(80));
-      } else {
-        for (let i = 2; i < process.argv.length; i += 1) {
-          submissions.push(Buffer.from(process.argv[i], 'hex'));
-        }
-      }
-    } else {
+    if (process.argv.length <= 2) {
       console.log('Use node submitAgent.js [ input | -r ]');
       console.log('\tinput\tInput to send (in hexadecimal: f123e73b45a46bb6)');
       console.log('\t-r\tRandomly generated input');
@@ -72,7 +70,7 @@ async function main() {
     }
 
 
-    submitAgent.run(submissions);
+    submitAgent.run(process.argv[2] === '-r');
 
     // submitAgent.stop();
   } catch (err) {
