@@ -12,7 +12,8 @@
     "postinstall": "cd client && npm install",
     "dev": "run-p dev:*",
     "dev:backend": "nodemon src/app.js",
-    "dev:client": "cd client && npm start"
+    "dev:client": "cd client && npm start",
+    "deploy": "truffle migrate"
   },
   "repository": {
     "type": "git",
