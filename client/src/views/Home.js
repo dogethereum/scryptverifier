@@ -11,6 +11,7 @@ import {
 } from '../lib/Api';
 import SubmissionsComponent from '../components/Submissions';
 import Notifications from '../lib/Notifications';
+import SubmissionDetails from '../components/SubmissionDetails';
 
 class Home extends React.Component {
   constructor(props) {
@@ -18,6 +19,7 @@ class Home extends React.Component {
     this.state = {
       loading: false,
       error: false,
+      selectedSubmission: undefined,
       data: {},
     };
     this.notifications = new Notifications();
@@ -25,6 +27,7 @@ class Home extends React.Component {
       this.updateData(hash);
     });
     this.handleRowClick = this.handleRowClick.bind(this);
+    this.handleModalClose = this.handleModalClose.bind(this);
   }
 
   componentDidMount() {
@@ -62,13 +65,18 @@ class Home extends React.Component {
   }
 
   handleRowClick(hash) {
-    console.log(hash);
+    this.setState({ selectedSubmission: hash });
+  }
+
+  handleModalClose() {
+    this.setState({ selectedSubmission: undefined });
   }
 
   render() {
     const {
       loading,
       error,
+      selectedSubmission,
       data: {
         submissions = [],
       },
@@ -82,6 +90,10 @@ class Home extends React.Component {
         </Grid.Row>
         <Grid.Row>
           <Grid.Column>
+            <SubmissionDetails
+              hash={selectedSubmission}
+              onClose={() => this.handleModalClose()}
+            />
             <Loader active={loading} inline="centered" />
             <SubmissionsComponent submissions={submissions} onRowClick={this.handleRowClick} />
           </Grid.Column>
