@@ -40,10 +40,11 @@ class Home extends React.Component {
       this.setState({ loading: true, error: false });
       const { submissions } = await getSubmissions();
       const data = {
-        submissions: _.orderBy(submissions, ['timestamp'], ['desc']),
+        submissions: _.uniqBy(_.orderBy(submissions, ['timestamp'], ['desc']), row => row.hash),
       };
       this.setState({ loading: false, error: false, data });
     } catch (ex) {
+      console.log(`${ex.stack}`);
       this.setState({ loading: false, error: true });
     }
   }
@@ -51,7 +52,7 @@ class Home extends React.Component {
   async updateData(hash) {
     try {
       const { submission } = await getSubmission(hash);
-      const submissions = _.orderBy([...this.state.data.submissions, submission], ['timestamp'], ['desc']);
+      const submissions = _.uniqBy(_.orderBy([...this.state.data.submissions, submission], ['timestamp'], ['desc']), row => row.hash);
       const data = Object.assign({}, this.state.data, { submissions });
       this.setState({ data });
     } catch (ex) {
