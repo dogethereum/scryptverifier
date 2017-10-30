@@ -26,7 +26,7 @@ There two configuration files
 *   config.js: Contains general configuration parameters like ethereum node, port
 
 *   local_config.json: Used to store values that cannot be commited
-    like seeds. It needs two wallet: submitter and challenger:
+    like wallet seeds.
 
     For each one two parameters: `seed`, and `address`.
 
@@ -37,7 +37,11 @@ There two configuration files
         "address": "..."
       }
     }
-    ```    
+    ```
+
+    There's a local_config.json.example that can be used as template.
+
+    New wallet seeds can be generated with `node src/tools/manageAccounts.js generate`.
 
 ### Deploy contracts
 
