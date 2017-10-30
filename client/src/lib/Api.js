@@ -23,8 +23,13 @@ export function getSubmissions() {
   return fetchJson('submission');
 }
 
+export function getSubmissionEvents() {
+  return [];
+}
+
 export default {
   getEvents,
   getSubmission,
+  getSubmissionEvents,
   getSubmissions,
 };
