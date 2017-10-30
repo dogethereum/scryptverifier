@@ -1,5 +1,7 @@
 const utils = require('./utils');
 
+const SUBMISSION_GAS = 250000;
+
 class BaseAgent {
   constructor(scryptVerifier) {
     this.scryptVerifier = scryptVerifier;
@@ -89,7 +91,8 @@ class BaseAgent {
     return this.scryptVerifier.submissions.call(hash);
   }
 
-  sendSubmission(hash, data, address, options) {
+  sendSubmission(hash, data, address, userOptions) {
+    const options = Object.assign({ gas: SUBMISSION_GAS }, userOptions);
     return this.scryptVerifier.submit(hash, data, address, options);
   }
 

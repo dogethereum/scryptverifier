@@ -7,24 +7,24 @@ const WalletSubprovider = require('web3-provider-engine/subproviders/wallet.js')
 const Web3Subprovider = require('web3-provider-engine/subproviders/web3.js');
 const config = require('../../config');
 
-function createWalletSubProvider(options) {
-  const mnemonic = options.seed;
+function createWalletSubProvider({ seed }) {
+  const mnemonic = seed;
   const hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonic));
   const path = "m/44'/60'/0'/0/0";
   const wallet = hdwallet.derivePath(path).getWallet();
   return new WalletSubprovider(wallet, {});
 }
 
-function createProvider(options = {}) {
+function createProvider({ wallet, rpcpath }) {
   const engine = new ProviderEngine();
 
-  if (options.wallet) {
-    engine.addProvider(createWalletSubProvider(options.wallet));
+  if (wallet) {
+    engine.addProvider(createWalletSubProvider(wallet));
   }
 
   engine.addProvider(new FiltersSubprovider());
   engine.addProvider(
-    new Web3Subprovider(new Web3.providers.HttpProvider(options.rpcpath)));
+    new Web3Subprovider(new Web3.providers.HttpProvider(rpcpath || config.rpcpath)));
 
   engine.start();
 

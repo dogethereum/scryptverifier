@@ -18,13 +18,17 @@ class SubmitAgent extends BaseAgent {
   }
 
   async run(repeat) {
-    while (repeat) {
-      const input = crypto.randomBytes(80);
-      const [hash] = await scryptsy(input);
-      console.log(`BlockHeader: ${input.toString('hex')}`);
-      console.log(`BlockHash: ${hash.toString('hex')}`);
-      await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.submitter });
-      await Timeout(30000);
+    try {
+      while (repeat) {
+        const input = crypto.randomBytes(80);
+        const [hash] = await scryptsy(input);
+        console.log(`BlockHeader: ${input.toString('hex')}`);
+        console.log(`BlockHash: ${hash.toString('hex')}`);
+        await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.submitter });
+        await Timeout(30000);
+      }
+    } catch (ex) {
+      console.log(`${ex} - ${ex.stack}`);
     }
   }
 
