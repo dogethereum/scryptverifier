@@ -10,7 +10,7 @@ import {
   getSubmissions,
 } from '../lib/Api';
 import SubmissionsComponent from '../components/Submissions';
-import { subscribeNotifications } from '../lib/Notifications';
+import Notifications from '../lib/Notifications';
 
 class Home extends React.Component {
   constructor(props) {
@@ -20,24 +20,19 @@ class Home extends React.Component {
       error: false,
       data: {},
     };
+    this.notifications = new Notifications();
+    this.notifications.on('newSubmission', (hash) => {
+      this.updateData(hash);
+    });
   }
 
   componentDidMount() {
     this.loadData();
-    if (!this.socket) {
-      this.socket = subscribeNotifications();
-      this.socket.on('newSubmission', (hash) => {
-        this.updateData(hash);
-      });
-    }
+    this.notifications.subscribe();
   }
 
   componentWillUnmount() {
-    if (this.socket) {
-      this.socket.emit('unregister');
-      this.socket.close();
-      this.socket = null;
-    }
+    this.notifications.unsubscribe();
   }
 
   async loadData() {
