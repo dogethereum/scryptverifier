@@ -24,6 +24,7 @@ class Home extends React.Component {
     this.notifications.on('newSubmission', (hash) => {
       this.updateData(hash);
     });
+    this.handleRowClick = this.handleRowClick.bind(this);
   }
 
   componentDidMount() {
@@ -60,6 +61,10 @@ class Home extends React.Component {
     }
   }
 
+  handleRowClick(hash) {
+    console.log(hash);
+  }
+
   render() {
     const {
       loading,
@@ -78,7 +83,7 @@ class Home extends React.Component {
         <Grid.Row>
           <Grid.Column>
             <Loader active={loading} inline="centered" />
-            <SubmissionsComponent submissions={submissions} />
+            <SubmissionsComponent submissions={submissions} onRowClick={this.handleRowClick} />
           </Grid.Column>
         </Grid.Row>
       </Grid>

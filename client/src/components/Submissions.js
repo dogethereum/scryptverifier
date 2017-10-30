@@ -43,9 +43,10 @@ class Submissions extends React.Component {
 
   render() {
     const { submissions } = this.state;
+    const { onRowClick } = this.props;
     return (
       <Container>
-        <Table striped celled fixed singleLine>
+        <Table striped celled fixed singleLine selectable>
           <Table.Header>
             <Table.Row>
               <Table.HeaderCell>Hash</Table.HeaderCell>
@@ -57,7 +58,7 @@ class Submissions extends React.Component {
           </Table.Header>
           <Table.Body>
             {submissions.map(submission => (
-              <Table.Row key={submission.hash}>
+              <Table.Row key={submission.hash} onClick={() => onRowClick(submission.hash)}>
                 <Table.Cell>{submission.hash}</Table.Cell>
                 <Table.Cell>{submission.input}</Table.Cell>
                 <Table.Cell>{submission.submitter}</Table.Cell>
