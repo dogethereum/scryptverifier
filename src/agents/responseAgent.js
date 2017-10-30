@@ -1,9 +1,7 @@
-const process = require('process');
-const Web3 = require('web3');
-const makeScryptVerifier = require('./ScryptVerifier');
 const BaseAgent = require('./BaseAgent');
-const config = require('./config');
-const scryptsy = require('../scryptsy');
+const config = require('../../config');
+const scryptsy = require('../../scryptsy');
+const Verifier = require('../controllers/verifier');
 
 
 const hashRanges = [[0, 520], [520, 1024], [1024, 1544], [1544, 2048]];
@@ -17,81 +15,86 @@ class ResponseAgent extends BaseAgent {
     this.submissions = {};
   }
 
-  async run() {
+  run() {
   }
 
   async processChallenge(hash, challengeId) {
-    const [, input, ] = await this.getSubmission(hash);
-    console.log(`Challenge input: ${input}`);
-    const [ result, intermediate ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
-    const resultHash = `0x${result.toString('hex')}`;
-    if (resultHash === hash) {
-      this.submissions[hash] = {
-        input,
-        intermediate
+    try {
+      const [, input] = await this.getSubmission(hash);
+      console.log(`Challenge input: ${input}`);
+      const [result, intermediate] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
+      const resultHash = `0x${result.toString('hex')}`;
+      if (resultHash === hash) {
+        this.submissions[hash] = {
+          input,
+          intermediate,
+        };
+        this.challenges[challengeId] = hash;
+        this.replyChallenge(challengeId);
+      } else {
+        console.log(`Result didn't match ${hash} != ${resultHash}`);
       }
-      this.challenges[challengeId] = hash;
-      this.replyChallenge(challengeId);
-    } else {
-      console.log(`Result didn't match ${hash} != ${resultHash}`);
+    } catch (ex) {
+      console.log(`${ex.stack}`);
     }
   }
 
   async replyChallenge(challengeId) {
-    const hash = this.challenges[challengeId];
-    if (hash && this.submissions[hash].intermediate) {
-      const intermediate = this.submissions[hash].intermediate;
-      console.log(`Sending hashes for ${challengeId}`);
-      await hashRanges.reduce((cur, [startRound, endRound]) => {
-        return cur.then(async () => {
+    try {
+      const hash = this.challenges[challengeId];
+      if (hash && this.submissions[hash].intermediate) {
+        const intermediate = this.submissions[hash].intermediate;
+        console.log(`Sending hashes for ${challengeId}`);
+        await hashRanges.reduce((cur, [startRound, endRound]) => cur.then(async () => {
           const hashes = [];
-          for (let round=startRound; round<endRound; round+=10) {
+          for (let round = startRound; round < endRound; round += 10) {
             hashes.push(`0x${intermediate[round].output_hash}`);
           }
-          const sendHashesTx = await this.sendHashes(challengeId, startRound, hashes, { from: this.responder });
+          const sendHashesTx = await this.sendHashes(challengeId, startRound, hashes,
+            { from: this.responder });
           console.log(`Send hashes: From ${startRound}, length: ${hashes.length}, at: ${sendHashesTx.tx}`);
-        });
-      }, Promise.resolve());
-      console.log('Sending hashes completed');
-    } else {
-      console.log(`Reply challenge: not valid ${challengeId}`);
+        }), Promise.resolve());
+        console.log('Sending hashes completed');
+      } else {
+        console.log(`Reply challenge: not valid ${challengeId}`);
+      }
+    } catch (ex) {
+      console.log(`${ex.stack}`);
     }
   }
 
   async replyRequest(hash, challengeId, round) {
-    const submission = this.submissions[hash];
-    if (!submission || !submission.intermediate) {
-      console.log(`Not valid hash ${hash}`);
-      return;
-    }
-    const intermediate = submission.intermediate;
-    const roundInput = [];
-    for (let i=0; i<4; ++i) {
-      roundInput.push(`0x${intermediate[round].output.slice(64*i, 64*i+64)}`);
-    }
-    const extraInputs = [];
-    if (round >= 1024) {
-      for (let j=0; j<10; ++j) {
-        if (round + j + 1 < intermediate.length && intermediate[round + j + 1].input2) {
-          const input2 = intermediate[round + j + 1].input2;
-          for (let i=0; i<4; ++i) {
-            extraInputs.push(`0x${input2.slice(64*i, 64*i+64)}`);
+    try {
+      const submission = this.submissions[hash];
+      if (!submission || !submission.intermediate) {
+        console.log(`Not valid hash ${hash}`);
+        return;
+      }
+      const intermediate = submission.intermediate;
+      const roundInput = [];
+      for (let i = 0; i < 4; i += 1) {
+        roundInput.push(`0x${intermediate[round].output.slice(64 * i, (64 * i) + 64)}`);
+      }
+      const extraInputs = [];
+      if (round >= 1024) {
+        for (let j = 0; j < 10; j += 1) {
+          if (round + j + 1 < intermediate.length && intermediate[round + j + 1].input2) {
+            const input2 = intermediate[round + j + 1].input2;
+            for (let i = 0; i < 4; i += 1) {
+              extraInputs.push(`0x${input2.slice(64 * i, (64 * i) + 64)}`);
+            }
           }
         }
       }
-    }
-    try {
-      const sendRoundTx = await this.sendRound(challengeId, round, roundInput, extraInputs, { from: this.responder });
+      const sendRoundTx = await this.sendRound(challengeId, round, roundInput, extraInputs,
+        { from: this.responder });
       console.log(`Send data id: ${challengeId}, round: ${round}, tx: ${sendRoundTx.tx}`);
     } catch (ex) {
-      console.log(ex);
-      console.log(ex.stack);
-      console.log(JSON.stringify({ round, roundInput, extraInputs }, null, '  '));
+      console.log(`${ex.stack}`);
     }
   }
 
-  onNewSubmission(submissionData) {
-  }
+  onNewSubmission() {} // eslint-disable-line class-methods-use-this
 
   onNewChallenge(challengeData) {
     const { hash, challengeId } = challengeData.args;
@@ -99,8 +102,7 @@ class ResponseAgent extends BaseAgent {
     this.processChallenge(hash, challengeId);
   }
 
-  onNewDataHashes(dataHashes) {
-  }
+  onNewDataHashes() {} // eslint-disable-line class-methods-use-this
 
   onNewRequest(requestData) {
     const { hash, challengeId, round: strRound } = requestData.args;
@@ -113,24 +115,22 @@ class ResponseAgent extends BaseAgent {
     }
   }
 
-  onRoundVerified(roundResult) {
-  }
+  onRoundVerified() {} // eslint-disable-line class-methods-use-this
 }
 
 
 async function main() {
   try {
-    const provider = new Web3.providers.HttpProvider(config.web3Url);
-    const web3 = new Web3(provider);
+    const scryptVerifier = await (new Verifier({
+      wallet: config.submitter,
+      defaults: {
+        gas: 4000000,
+      },
+    })).getScryptVerifier();
 
-    const responder = config.responder || web3.eth.accounts[0];
-
-    const scryptVerifier = await makeScryptVerifier(provider, { from: responder, gas: 4700000 });
-
-    const responseAgent = new ResponseAgent(scryptVerifier, responder);
+    const responseAgent = new ResponseAgent(scryptVerifier, config.submitter.address);
 
     responseAgent.run();
-
   } catch (err) {
     console.log(`Error: ${err} ${err.stack}`);
   }

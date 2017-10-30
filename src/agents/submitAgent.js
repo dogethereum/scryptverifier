@@ -24,8 +24,11 @@ class SubmitAgent extends BaseAgent {
         const [hash] = await scryptsy(input);
         console.log(`BlockHeader: ${input.toString('hex')}`);
         console.log(`BlockHash: ${hash.toString('hex')}`);
+        if (hash[2] % 5 === 2) {
+          hash[14] = hash[14] ? 0 : 1;
+        }
         await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.submitter });
-        await Timeout(30000);
+        await Timeout(1000);
       }
     } catch (ex) {
       console.log(`${ex} - ${ex.stack}`);
@@ -33,25 +36,28 @@ class SubmitAgent extends BaseAgent {
   }
 
   static async onNewSubmission(submissionData) {
-    const { hash, input } = submissionData.args;
-    console.log(`New submission hash: ${hash}, input: ${input}`);
-    const [result] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
-    const resultHash = `0x${result.toString('hex')}`;
-    if (resultHash !== hash) {
-      console.log(`Hashes didn't match hash: ${hash}, result: ${resultHash}`);
-    } else {
-      console.log('Matching hashes, no need to challenge');
+    try {
+      const { hash, input } = submissionData.args;
+      console.log(`New submission hash: ${hash}, input: ${input}`);
+      const [result] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
+      const resultHash = `0x${result.toString('hex')}`;
+      if (resultHash !== hash) {
+        console.log(`Hashes didn't match hash: ${hash}, result: ${resultHash}`);
+      } else {
+        console.log('Matching hashes, no need to challenge');
+      }
+    } catch (ex) {
+      console.log(`${ex.stack}`);
     }
   }
 
-  static onNewChallenge() {
-  }
+  onNewChallenge() {} // eslint-disable-line class-methods-use-this
 
-  static onNewDataHashes() {
-  }
+  onNewDataHashes() {} // eslint-disable-line class-methods-use-this
 
-  static onNewRequest() {
-  }
+  onNewRequest() {} // eslint-disable-line class-methods-use-this
+
+  onRoundVerified() {} // eslint-disable-line class-methods-use-this
 }
 
 

@@ -1,6 +1,8 @@
-const utils = require('./utils');
-
 const SUBMISSION_GAS = 250000;
+const CHALLENGE_GAS = 70000;
+const SENDHASHES_GAS = 3400000;
+const SENDREQUEST_GAS = 80000;
+const SENDDATA_GAS = 3400000;
 
 class BaseAgent {
   constructor(scryptVerifier) {
@@ -75,60 +77,60 @@ class BaseAgent {
     });
   }
 
-  termEvents() {
-    // if (this.newChallengeEvent) this.newChallengeEvent.stopWatching();
-    // if (this.newRequestEvent) this.newRequestEvent.stopWatching();
-    // if (this.newSubmissionEvent) this.newSubmissionEvent.stopWatching();
-    // if (this.newDataHashesEvent) this.newDataHashesEvent.stopWatching();
-  }
-
-  async sendChallenge(hash, options) {
-    const challengeTx = await this.scryptVerifier.challenge(hash, options);
-    return utils.parseNewChallenge(challengeTx);
-  }
-
-  getSubmission(hash) {
-    return this.scryptVerifier.submissions.call(hash);
-  }
+  termEvents() {} // eslint-disable-line class-methods-use-this
 
   sendSubmission(hash, data, address, userOptions) {
     const options = Object.assign({ gas: SUBMISSION_GAS }, userOptions);
     return this.scryptVerifier.submit(hash, data, address, options);
   }
 
-  sendHashes(challengeId, start, hashes, options) {
+  sendChallenge(hash, userOptions) {
+    const options = Object.assign({ gas: CHALLENGE_GAS }, userOptions);
+    return this.scryptVerifier.challenge(hash, options);
+  }
+
+  sendHashes(challengeId, start, hashes, userOptions) {
+    const options = Object.assign({ gas: SENDHASHES_GAS }, userOptions);
     return this.scryptVerifier.sendHashes(challengeId, start, hashes, options);
+  }
+
+  sendRequest(challengeId, round, userOptions) {
+    const options = Object.assign({ gas: SENDREQUEST_GAS }, userOptions);
+    return this.scryptVerifier.request(challengeId, round, options);
+  }
+
+  sendRound(challengeId, round, data, extraData, userOptions) {
+    const options = Object.assign({ gas: SENDDATA_GAS }, userOptions);
+    return this.scryptVerifier.sendData(challengeId, round, data, extraData, options);
+  }
+
+
+  getSubmission(hash) {
+    return this.scryptVerifier.submissions.call(hash);
   }
 
   getHashes(hash, start, length) {
     return this.scryptVerifier.getHashes.call(hash, start, length, 10);
   }
 
-  sendRequest(challengeId, round, options) {
-    return this.scryptVerifier.request(challengeId, round, options);
-  }
 
-  sendRound(challengeId, round, data, extraData, options) {
-    return this.scryptVerifier.sendData(challengeId, round, data, extraData, options);
-  }
-
-  onNewSubmission(submissionData) {
+  onNewSubmission(submissionData) { // eslint-disable-line class-methods-use-this
     console.log(`BA: New submission: ${JSON.stringify(submissionData, null, '  ')}`);
   }
 
-  onNewChallenge(challengeData) {
+  onNewChallenge(challengeData) { // eslint-disable-line class-methods-use-this
     console.log(`BA: New challenge: ${JSON.stringify(challengeData, null, '  ')}`);
   }
 
-  onNewRequest(requestData) {
+  onNewRequest(requestData) { // eslint-disable-line class-methods-use-this
     console.log(`BA: New request: ${JSON.stringify(requestData, null, '  ')}`);
   }
 
-  onNewDataHashes(dataHashes) {
+  onNewDataHashes(dataHashes) { // eslint-disable-line class-methods-use-this
     console.log(`BA: New data hashes: ${JSON.stringify(dataHashes, null, '  ')}`);
   }
 
-  onRoundVerified(roundResult) {
+  onRoundVerified(roundResult) { // eslint-disable-line class-methods-use-this
     console.log(`BA: Round verified: ${JSON.stringify(roundResult, null, '  ')}`);
   }
 }

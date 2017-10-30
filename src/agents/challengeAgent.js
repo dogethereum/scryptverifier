@@ -1,8 +1,8 @@
-const Web3 = require('web3');
-const makeScryptVerifier = require('./ScryptVerifier');
 const BaseAgent = require('./BaseAgent');
-const scryptsy = require('../scryptsy');
-const config = require('./config');
+const config = require('../../config');
+const scryptsy = require('../../scryptsy');
+const Verifier = require('../controllers/verifier');
+const utils = require('./utils');
 
 
 class ChallengeAgent extends BaseAgent {
@@ -13,12 +13,12 @@ class ChallengeAgent extends BaseAgent {
     this.challenges = {};
   }
 
-  async run() {
-  }
+  run() {} // eslint-disable-line class-methods-use-this
 
   async makeChallenge(hash) {
     console.log(`Making challenge.. ${hash}`);
-    const { challengeId } = await this.sendChallenge(hash, { from: this.challenger });
+    const challengeTx = await this.sendChallenge(hash, { from: this.challenger });
+    const { challengeId } = utils.parseNewChallenge(challengeTx);
     this.challenges[challengeId] = {
       hash,
       intermediateHashes: [],
@@ -31,13 +31,13 @@ class ChallengeAgent extends BaseAgent {
   }
 
   async processSubmission(hash, input) {
-    const [ result, intermediate ] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
+    const [result, intermediate] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
     const resultHash = `0x${result.toString('hex')}`;
     this.submissions[hash] = {
       input,
       resultHash,
       intermediate,
-    }
+    };
     if (resultHash !== hash) {
       console.log(`Hashes didn't match hash: ${hash}, result: ${resultHash}`);
       this.makeChallenge(hash);
@@ -50,32 +50,40 @@ class ChallengeAgent extends BaseAgent {
   }
 
   async processHashes(hash, challengeId, start, length) {
-    const challenge = this.challenges[challengeId];
-    if (!challenge) {
-      console.log(`Not valid challenge id ${challengeId}`);
-      return;
-    }
-    const hashes = await this.getHashes(hash, start, length);
-    const submission = this.submissions[hash];
-    for (let i=0; i<hashes.length; ++i) {
-      challenge.hashes[start + 10*i] = hashes[i];
-    }
-    challenge.replies.push({
-      start,
-      length,
-    });
-    if (challenge.replies.length >= 4) {
-      this.verifyHashes(hash, challengeId);
+    try {
+      const challenge = this.challenges[challengeId];
+      if (!challenge) {
+        console.log(`Not valid challenge id ${challengeId}`);
+        return;
+      }
+      const hashes = await this.getHashes(hash, start, length);
+      // const submission = this.submissions[hash];
+      for (let i = 0; i < hashes.length; i += 1) {
+        challenge.hashes[start + (10 * i)] = hashes[i];
+      }
+      challenge.replies.push({
+        start,
+        length,
+      });
+      if (challenge.replies.length >= 4) {
+        this.verifyHashes(hash, challengeId);
+      }
+    } catch (ex) {
+      console.log(`${ex.stack}`);
     }
   }
 
   async makeRequest(challengeId, round) {
-    const challenge = this.challenges[challengeId];
-    console.log(`About to send request ${challengeId} for ${round}`);
-    challenge.requests[round] = { pending: true };
-    challenge.pending.push(round);
-    const requestTx = await this.sendRequest(challengeId, round, { from: this.challenger });
-    console.log(`Send request ${requestTx.tx}`);
+    try {
+      const challenge = this.challenges[challengeId];
+      console.log(`About to send request ${challengeId} for ${round}`);
+      challenge.requests[round] = { pending: true };
+      challenge.pending.push(round);
+      const requestTx = await this.sendRequest(challengeId, round, { from: this.challenger });
+      console.log(`Send request ${requestTx.tx}`);
+    } catch (ex) {
+      console.log(`${ex.stack}`);
+    }
   }
 
   verifyHashes(hash, challengeId) {
@@ -125,23 +133,21 @@ class ChallengeAgent extends BaseAgent {
     this.processSubmission(hash, input);
   }
 
-  onNewChallenge(challengeData) {
-  }
+  onNewChallenge() {} // eslint-disable-line class-methods-use-this
 
   onNewDataHashes(dataHashes) {
     const { hash, challengeId } = dataHashes.args;
     const challenge = this.challenges[challengeId];
     if (challenge && challenge.hash === hash) {
-      const start = parseInt(dataHashes.args.start);
-      const length = parseInt(dataHashes.args.length);
-      this.processHashes(hash, challengeId, start, length)
+      const start = parseInt(dataHashes.args.start, 10);
+      const length = parseInt(dataHashes.args.length, 10);
+      this.processHashes(hash, challengeId, start, length);
     } else {
       console.log(`Not valid challenge hash: ${hash}, id: ${challengeId}`);
     }
   }
 
-  onNewRequest(requestData) {
-  }
+  onNewRequest() {} // eslint-disable-line class-methods-use-this
 
   onRoundVerified(roundResult) {
     const { challengeId, hash, round: strRound } = roundResult.args;
@@ -154,16 +160,16 @@ class ChallengeAgent extends BaseAgent {
 
 async function main() {
   try {
-    const provider = new Web3.providers.HttpProvider(config.web3Url);
-    const web3 = new Web3(provider);
+    const scryptVerifier = await (new Verifier({
+      wallet: config.challenger,
+      defaults: {
+        gas: 4000000,
+      },
+    })).getScryptVerifier();
 
-    const challenger = config.challenger || web3.eth.accounts[1];
-    const scryptVerifier = await makeScryptVerifier(provider, { from: challenger });
-
-    const challengeAgent = new ChallengeAgent(scryptVerifier, challenger);
+    const challengeAgent = new ChallengeAgent(scryptVerifier, config.challenger.address);
 
     challengeAgent.run();
-
   } catch (err) {
     console.log(`Error: ${err} ${err.stack}`);
   }
