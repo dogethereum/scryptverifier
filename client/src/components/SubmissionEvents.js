@@ -51,16 +51,16 @@ class SubmissionEvents extends React.Component {
               <Table.HeaderCell>Event</Table.HeaderCell>
               <Table.HeaderCell>Sender</Table.HeaderCell>
               <Table.HeaderCell>Date</Table.HeaderCell>
-              <Table.HeaderCell>Result</Table.HeaderCell>
+              <Table.HeaderCell>Round</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {events.map(event => (
-              <Table.Row key={event.hash}>
+              <Table.Row key={event.txHash}>
                 <Table.Cell>{event.name}</Table.Cell>
                 <Table.Cell>{event.sender}</Table.Cell>
                 <Table.Cell>{formatTimestamp(event.timestamp)}</Table.Cell>
-                <Table.Cell>{event.result}</Table.Cell>
+                <Table.Cell>{event.round}</Table.Cell>
               </Table.Row>
             ))}
             {events.length === 0 &&
