@@ -3,11 +3,14 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const http = require('http');
 const cors = require('cors');
+const Promise = require('bluebird');
 const config = require('../config');
 const api = require('./routes');
 const logger = require('./controllers/logger');
 const notification = require('./controllers/notifications');
 const verifier = require('./controllers/verifier');
+
+global.Promise = Promise;
 
 function createApp() {
   const app = express();
