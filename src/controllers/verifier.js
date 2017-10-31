@@ -42,6 +42,24 @@ function getNewChallenges(NewChallenge) {
   });
 }
 
+function fillTxInfo(web3, event) {
+  return new Promise((resolve, reject) => {
+    web3.eth.getTransaction(event.txHash, (err, tx) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      web3.eth.getBlock(tx.blockHash, (err2, block) => {
+        if (err2) {
+          reject(err2);
+          return;
+        }
+        resolve({ ...event, sender: tx.from, timestamp: block.timestamp });
+      });
+    });
+  });
+}
+
 class VerifierController {
   constructor(options) {
     this.verifier = createScryptVerifier(options);
@@ -83,8 +101,10 @@ class VerifierController {
 
   async getSubmissionEvents(hash) {
     const verifier = await this.verifier;
+    const web3 = verifier.constructor.web3;
     const NewChallenge = verifier.NewChallenge({ hash }, { fromBlock: 0, toBlock: 'latest' });
-    return getNewChallenges(NewChallenge);
+    const events = await getNewChallenges(NewChallenge);
+    return Promise.all(events.map(event => fillTxInfo(web3, event)));
   }
 }
 
