@@ -33,9 +33,9 @@ class SubmissionDetails extends React.Component {
   async loadData(hash) {
     try {
       this.setState({ hash, loading: true, error: false });
-      const { events } = await hash ? getSubmissionEvents(hash) : [];
+      const { events } = await (hash ? getSubmissionEvents(hash) : []);
       const data = {
-        events: _.uniqBy(_.orderBy(events, ['timestamp'], ['desc']), row => row.hash),
+        events,
       };
       this.setState({ loading: false, error: false, data });
     } catch (ex) {

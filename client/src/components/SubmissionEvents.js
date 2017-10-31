@@ -58,11 +58,13 @@ class SubmissionEvents extends React.Component {
             {events.map(event => (
               <Table.Row key={event.hash}>
                 <Table.Cell>{event.name}</Table.Cell>
-                <Table.Cell>{event.submitter}</Table.Cell>
+                <Table.Cell>{event.sender}</Table.Cell>
                 <Table.Cell>{formatTimestamp(event.timestamp)}</Table.Cell>
                 <Table.Cell>{event.result}</Table.Cell>
               </Table.Row>
             ))}
+            {events.length === 0 &&
+              <Table.Row><Table.Cell colSpan="4">No events found</Table.Cell></Table.Row>}
           </Table.Body>
         </Table>
       </Container>

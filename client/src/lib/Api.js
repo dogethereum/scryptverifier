@@ -23,8 +23,8 @@ export function getSubmissions() {
   return fetchJson('submission');
 }
 
-export function getSubmissionEvents() {
-  return [];
+export function getSubmissionEvents(hash) {
+  return fetchJson(`submission/${hash}/events`);
 }
 
 export default {
