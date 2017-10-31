@@ -32,4 +32,19 @@ router.get('/:hash', async (req, res) => {
   }
 });
 
+router.get('/:hash/events', async (req, res) => {
+  try {
+    const { hash } = req.params;
+    const { events } = await Submissions.getSubmissionEvents(hash);
+    res.json({
+      events,
+    });
+  } catch (ex) {
+    res.status(ex.status || 500);
+    res.json({
+      errors: [ex.message],
+    });
+  }
+});
+
 module.exports = router;

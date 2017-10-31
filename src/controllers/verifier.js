@@ -25,6 +25,23 @@ function createScryptVerifier({ defaults, wallet } = {}) {
   return ScryptVerifier.deployed();
 }
 
+function getNewChallenges(NewChallenge) {
+  return new Promise((resolve, reject) => {
+    NewChallenge.get((err, result) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(result.map(x => ({
+        name: x.event,
+        hash: x.args.hash,
+        challengeId: x.args.challengeId,
+        txHash: x.transactionHash,
+      })));
+    });
+  });
+}
+
 class VerifierController {
   constructor(options) {
     this.verifier = createScryptVerifier(options);
@@ -62,6 +79,12 @@ class VerifierController {
   async getSubmissionsHashes(start, count) {
     const verifier = await this.verifier;
     return verifier.getSubmissionsHashes(start, count);
+  }
+
+  async getSubmissionEvents(hash) {
+    const verifier = await this.verifier;
+    const NewChallenge = verifier.NewChallenge({ hash }, { fromBlock: 0, toBlock: 'latest' });
+    return getNewChallenges(NewChallenge);
   }
 }
 

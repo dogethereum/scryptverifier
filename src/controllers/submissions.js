@@ -25,6 +25,11 @@ class SubmissionsController {
 
     return { submissions };
   }
+
+  async getSubmissionEvents(hash) {
+    const events = await this.verifier.getSubmissionEvents(hash);
+    return { events };
+  }
 }
 
 module.exports = new SubmissionsController();
