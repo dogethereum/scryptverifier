@@ -60,6 +60,40 @@ function formatChallenge(logChallenge) {
   };
 }
 
+function formatDataHashes(logDataHash) {
+  return {
+    name: logDataHash.event,
+    hash: logDataHash.args.hash,
+    challengeId: logDataHash.args.challengeId,
+    start: logDataHash.args.start,
+    length: logDataHash.args.length,
+    txHash: logDataHash.transactionHash,
+    blockHash: logDataHash.blockHash,
+  };
+}
+
+function formatRequest(logRequest) {
+  return {
+    name: logRequest.event,
+    hash: logRequest.args.hash,
+    challengeId: logRequest.args.challengeId,
+    round: logRequest.args.round,
+    txHash: logRequest.transactionHash,
+    blockHash: logRequest.blockHash,
+  };
+}
+
+function formatRoundVerified(logRoundVerified) {
+  return {
+    name: logRoundVerified.event,
+    hash: logRoundVerified.args.hash,
+    challengeId: logRoundVerified.args.challengeId,
+    round: logRoundVerified.args.round,
+    txHash: logRoundVerified.transactionHash,
+    blockHash: logRoundVerified.blockHash,
+  };
+}
+
 function fillTxInfo(web3, event) {
   return new Promise((resolve, reject) => {
     web3.eth.getTransaction(event.txHash, (err, tx) => {
@@ -131,12 +165,36 @@ class VerifierController {
       .then(submissions => submissions.map(formatSubmission));
   }
 
+  async getNewDataHashes(hash, fromBlock, toBlock) {
+    const verifier = await this.verifier;
+    const NewDataHashes = verifier.NewDataHashes({ hash }, { fromBlock, toBlock });
+    return getEvents(NewDataHashes)
+      .then(dataHashes => dataHashes.map(formatDataHashes));
+  }
+
+  async getNewRequest(hash, fromBlock, toBlock) {
+    const verifier = await this.verifier;
+    const NewRequest = verifier.NewRequest({ hash }, { fromBlock, toBlock });
+    return getEvents(NewRequest)
+      .then(requests => requests.map(formatRequest));
+  }
+
+  async getRoundVerified(hash, fromBlock, toBlock) {
+    const verifier = await this.verifier;
+    const RoundVerified = verifier.RoundVerified({ hash }, { fromBlock, toBlock });
+    return getEvents(RoundVerified)
+      .then(verifications => verifications.map(formatRoundVerified));
+  }
+
   async getSubmissionEvents(hash) {
     const verifier = await this.verifier;
     const web3 = verifier.constructor.web3;
     const events = await Promise.all([
       this.getNewSubmission(hash, 0, 'latest'),
       this.getNewChallenges(hash, 0, 'latest'),
+      this.getNewDataHashes(hash, 0, 'latest'),
+      this.getNewRequest(hash, 0, 'latest'),
+      this.getRoundVerified(hash, 0, 'latest'),
     ]);
     return Promise.map(_.flatten(events),
       event => fillTxInfo(web3, event),
