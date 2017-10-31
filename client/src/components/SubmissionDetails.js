@@ -35,7 +35,7 @@ class SubmissionDetails extends React.Component {
       this.setState({ hash, loading: true, error: false });
       const { events } = await (hash ? getSubmissionEvents(hash) : []);
       const data = {
-        events,
+        events: _.orderBy(events, ['timestamp'], ['desc']),
       };
       this.setState({ loading: false, error: false, data });
     } catch (ex) {
