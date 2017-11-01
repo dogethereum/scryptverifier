@@ -28,14 +28,15 @@ class SubmitAgent extends BaseAgent {
           hash[14] = hash[14] ? 0 : 1;
         }
         await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.submitter });
-        await Timeout(1000);
+        await Timeout(30000);
       }
     } catch (ex) {
       console.log(`${ex} - ${ex.stack}`);
     }
   }
 
-  static async onNewSubmission(submissionData) {
+  // eslint-disable-next-line class-methods-use-this
+  async onNewSubmission(submissionData) {
     try {
       const { hash, input } = submissionData.args;
       console.log(`New submission hash: ${hash}, input: ${input}`);
