@@ -88,7 +88,7 @@ class Home extends React.Component {
           }
           return st;
         }, STATUS_NEW);
-        if (Date.now() - (new Date(parseInt(s.timestamp, 10) * 1000)) >= 10 * 60 * 10000) {
+        if (Date.now() - (new Date(parseInt(s.timestamp, 10) * 1000)) >= 10 * 60 * 1000) {
           if (status === STATUS_NEW || status === STATUS_DATA) {
             status = STATUS_VERIFIED;
           } else {
