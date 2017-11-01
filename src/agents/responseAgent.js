@@ -25,11 +25,22 @@ class ResponseAgent extends BaseAgent {
       const [result, intermediate] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
       const resultHash = `0x${result.toString('hex')}`;
       if (resultHash === hash) {
+        const now = Date.now();
         this.submissions[hash] = {
           input,
           intermediate,
+          timestamp: now,
         };
-        this.challenges[challengeId] = hash;
+        const toRemove = Object.keys(this.submissions)
+          .find(h => now - this.submissions[h].timestamp >= 60 * 60 * 1000);
+        toRemove.forEach(h => delete this.submissions[h]);
+        this.challenges[challengeId] = {
+          hash,
+          timestamp: now,
+        };
+        const toRemove2 = Object.keys(this.challenges)
+          .find(h => now - this.challenges[h].timestamp >= 60 * 60 * 1000);
+        toRemove2.forEach(h => delete this.challenges[h]);
         this.replyChallenge(challengeId);
       } else {
         console.log(`Result didn't match ${hash} != ${resultHash}`);
@@ -41,7 +52,7 @@ class ResponseAgent extends BaseAgent {
 
   async replyChallenge(challengeId) {
     try {
-      const hash = this.challenges[challengeId];
+      const hash = this.challenges[challengeId] ? this.challenges[challengeId].hash : undefined;
       if (hash && this.submissions[hash].intermediate) {
         const intermediate = this.submissions[hash].intermediate;
         console.log(`Sending hashes for ${challengeId}`);

@@ -26,6 +26,7 @@ class ChallengeAgent extends BaseAgent {
       requests: {},
       hashes: {},
       pending: [],
+      timestamp: Date.now(),
     };
     console.log(`Got challenge id ${challengeId}`);
   }
@@ -33,11 +34,19 @@ class ChallengeAgent extends BaseAgent {
   async processSubmission(hash, input) {
     const [result, intermediate] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
     const resultHash = `0x${result.toString('hex')}`;
+    const now = Date.now();
     this.submissions[hash] = {
       input,
       resultHash,
       intermediate,
+      timestamp: now,
     };
+    const toRemove = Object.keys(this.submissions)
+      .find(h => now - this.submissions[h].timestamp >= 60 * 60 * 1000);
+    toRemove.forEach(h => delete this.submissions[h]);
+    const toRemove2 = Object.keys(this.challenges)
+      .find(h => now - this.challenges[h].timestamp >= 60 * 60 * 1000);
+    toRemove2.forEach(h => delete this.challenges[h]);
     if (resultHash !== hash) {
       console.log(`Hashes didn't match hash: ${hash}, result: ${resultHash}`);
       this.makeChallenge(hash);
