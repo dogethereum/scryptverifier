@@ -118,87 +118,141 @@ class VerifierController {
   }
 
   static async installEventListener(options) {
-    const verifier = await createScryptVerifier(options);
-    registerEvent(verifier.NewSubmission(), (result) => {
-      const { hash, input } = result.args;
-      notification.sendNotification('newSubmission', hash, input);
-    });
+    try {
+      const verifier = await createScryptVerifier(options);
+      registerEvent(verifier.NewSubmission(), (result) => {
+        const { hash, input } = result.args;
+        notification.sendNotification('newSubmission', hash, input);
+      });
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+    }
   }
 
   async getScryptVerifier() {
-    const verifier = await this.verifier;
-    return verifier;
+    try {
+      const verifier = await this.verifier;
+      return verifier;
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+    }
+    return null;
   }
 
   async getSubmission(hash) {
-    const verifier = await this.verifier;
-    return verifier.getSubmission(hash).then(result => ({
-      hash: result[0],
-      input: result[1],
-      submitter: result[2],
-      timestamp: result[3],
-    }));
+    try {
+      const verifier = await this.verifier;
+      return verifier.getSubmission(hash).then(result => ({
+        hash: result[0],
+        input: result[1],
+        submitter: result[2],
+        timestamp: result[3],
+      }));
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return {};
+    }
   }
 
   async getNumSubmissions() {
-    const verifier = await this.verifier;
-    return verifier.getNumSubmissions()
-      .then(result => result.toNumber());
+    try {
+      const verifier = await this.verifier;
+      return verifier.getNumSubmissions()
+        .then(result => result.toNumber());
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return 0;
+    }
   }
 
   async getSubmissionsHashes(start, count) {
-    const verifier = await this.verifier;
-    return verifier.getSubmissionsHashes(start, count);
+    try {
+      const verifier = await this.verifier;
+      return verifier.getSubmissionsHashes(start, count);
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 
   async getNewChallenges(hash, fromBlock, toBlock) {
-    const verifier = await this.verifier;
-    const NewChallenge = verifier.NewChallenge({ hash }, { fromBlock, toBlock });
-    return getEvents(NewChallenge)
-      .then(challenges => challenges.map(formatChallenge));
+    try {
+      const verifier = await this.verifier;
+      const NewChallenge = verifier.NewChallenge({ hash }, { fromBlock, toBlock });
+      return getEvents(NewChallenge)
+        .then(challenges => challenges.map(formatChallenge));
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 
   async getNewSubmission(hash, fromBlock, toBlock) {
-    const verifier = await this.verifier;
-    const NewSubmission = verifier.NewSubmission({ hash }, { fromBlock, toBlock });
-    return getEvents(NewSubmission)
-      .then(submissions => submissions.map(formatSubmission));
+    try {
+      const verifier = await this.verifier;
+      const NewSubmission = verifier.NewSubmission({ hash }, { fromBlock, toBlock });
+      return getEvents(NewSubmission)
+        .then(submissions => submissions.map(formatSubmission));
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 
   async getNewDataHashes(hash, fromBlock, toBlock) {
-    const verifier = await this.verifier;
-    const NewDataHashes = verifier.NewDataHashes({ hash }, { fromBlock, toBlock });
-    return getEvents(NewDataHashes)
-      .then(dataHashes => dataHashes.map(formatDataHashes));
+    try {
+      const verifier = await this.verifier;
+      const NewDataHashes = verifier.NewDataHashes({ hash }, { fromBlock, toBlock });
+      return getEvents(NewDataHashes)
+        .then(dataHashes => dataHashes.map(formatDataHashes));
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 
   async getNewRequest(hash, fromBlock, toBlock) {
-    const verifier = await this.verifier;
-    const NewRequest = verifier.NewRequest({ hash }, { fromBlock, toBlock });
-    return getEvents(NewRequest)
-      .then(requests => requests.map(formatRequest));
+    try {
+      const verifier = await this.verifier;
+      const NewRequest = verifier.NewRequest({ hash }, { fromBlock, toBlock });
+      return getEvents(NewRequest)
+        .then(requests => requests.map(formatRequest));
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 
   async getRoundVerified(hash, fromBlock, toBlock) {
-    const verifier = await this.verifier;
-    const RoundVerified = verifier.RoundVerified({ hash }, { fromBlock, toBlock });
-    return getEvents(RoundVerified)
-      .then(verifications => verifications.map(formatRoundVerified));
+    try {
+      const verifier = await this.verifier;
+      const RoundVerified = verifier.RoundVerified({ hash }, { fromBlock, toBlock });
+      return getEvents(RoundVerified)
+        .then(verifications => verifications.map(formatRoundVerified));
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 
   async getSubmissionEvents(hash) {
-    const verifier = await this.verifier;
-    const web3 = verifier.constructor.web3;
-    const events = await Promise.all([
-      this.getNewSubmission(hash, 0, 'latest'),
-      this.getNewChallenges(hash, 0, 'latest'),
-      this.getNewDataHashes(hash, 0, 'latest'),
-      this.getNewRequest(hash, 0, 'latest'),
-      this.getRoundVerified(hash, 0, 'latest'),
-    ]);
-    return Promise.map(_.flatten(events),
-      event => fillTxInfo(web3, event),
-      { concurrency: WEB3_CONCURRENCY });
+    try {
+      const verifier = await this.verifier;
+      const web3 = verifier.constructor.web3;
+      const events = await Promise.all([
+        this.getNewSubmission(hash, 0, 'latest'),
+        this.getNewChallenges(hash, 0, 'latest'),
+        this.getNewDataHashes(hash, 0, 'latest'),
+        this.getNewRequest(hash, 0, 'latest'),
+        this.getRoundVerified(hash, 0, 'latest'),
+      ]);
+      return Promise.map(_.flatten(events),
+        event => fillTxInfo(web3, event),
+        { concurrency: WEB3_CONCURRENCY });
+    } catch (ex) {
+      logger.error(`${ex.stack}`);
+      return [];
+    }
   }
 }
 
