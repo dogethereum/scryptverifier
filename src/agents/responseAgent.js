@@ -32,14 +32,14 @@ class ResponseAgent extends BaseAgent {
           timestamp: now,
         };
         const toRemove = Object.keys(this.submissions)
-          .find(h => now - this.submissions[h].timestamp >= 60 * 60 * 1000);
+          .find(h => now - this.submissions[h].timestamp >= 60 * 60 * 1000) || [];
         toRemove.forEach(h => delete this.submissions[h]);
         this.challenges[challengeId] = {
           hash,
           timestamp: now,
         };
         const toRemove2 = Object.keys(this.challenges)
-          .find(h => now - this.challenges[h].timestamp >= 60 * 60 * 1000);
+          .find(h => now - this.challenges[h].timestamp >= 60 * 60 * 1000) || [];
         toRemove2.forEach(h => delete this.challenges[h]);
         this.replyChallenge(challengeId);
       } else {
