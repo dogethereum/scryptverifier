@@ -13,6 +13,8 @@ import SubmissionsComponent from '../components/Submissions';
 import Notifications from '../lib/Notifications';
 import SubmissionDetails from '../components/SubmissionDetails';
 
+const NUM_SUBMISSIONS = 50;
+
 class Home extends React.Component {
   constructor(props) {
     super(props);
@@ -48,7 +50,7 @@ class Home extends React.Component {
       };
       this.setState({ loading: false, error: false, data });
     } catch (ex) {
-      console.log(`${ex.stack}`);
+      console.error(`${ex.stack}`);
       this.setState({ loading: false, error: true });
     }
   }
@@ -56,7 +58,10 @@ class Home extends React.Component {
   async updateData(hash) {
     try {
       const { submission } = await getSubmission(hash);
-      const submissions = _.uniqBy(_.orderBy([...this.state.data.submissions, submission], ['timestamp'], ['desc']), row => row.hash);
+      const submissions = _.uniqBy(
+        _.orderBy([...this.state.data.submissions, submission], ['timestamp'], ['desc']),
+        row => row.hash,
+      ).slice(0, NUM_SUBMISSIONS);
       const data = Object.assign({}, this.state.data, { submissions });
       this.setState({ data });
     } catch (ex) {
