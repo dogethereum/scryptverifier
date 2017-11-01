@@ -16,6 +16,13 @@ import SubmissionDetails from '../components/SubmissionDetails';
 
 const NUM_SUBMISSIONS = 50;
 
+const STATUS_NEW = 0;
+const STATUS_CHALLENGE = 1;
+const STATUS_DATA = 2;
+const STATUS_REQUEST = 3;
+const STATUS_VERIFIED = 4;
+const STATUS_INVALID = -1;
+
 function processSubmissions(submissions) {
   const sortedSubmissions = _.uniqBy(_.sortBy(submissions, ['timestamp']), s => s.hash)
     .reverse()
@@ -69,7 +76,26 @@ class Home extends React.Component {
     submissions.reduce(
       (curr, s) => curr.then(async () => {
         const { events } = await getSubmissionEvents(s.hash);
-        const submission = Object.assign({}, s, { events });
+        let status = events.reduce((st, event) => {
+          if (st < STATUS_CHALLENGE && event.name === 'NewChallenge') {
+            return STATUS_CHALLENGE;
+          } else if (st < STATUS_DATA && event.name === 'NewDataHashes') {
+            return STATUS_DATA;
+          } else if (st < STATUS_REQUEST && event.name === 'NewRequest') {
+            return STATUS_REQUEST;
+          } else if (st < STATUS_VERIFIED && event.name === 'RoundVerified') {
+            return STATUS_VERIFIED;
+          }
+          return st;
+        }, STATUS_NEW);
+        if (Date.now() - (new Date(parseInt(s.timestamp, 10) * 1000)) >= 10 * 60 * 10000) {
+          if (status === STATUS_NEW || status === STATUS_DATA) {
+            status = STATUS_VERIFIED;
+          } else {
+            status = STATUS_INVALID;
+          }
+        }
+        const submission = Object.assign({}, s, { events, status });
         const data = processSubmissions([submission, ...this.state.data.submissions]);
         this.setState({ data });
       }),
