@@ -44,7 +44,9 @@ class ChallengeAgent extends BaseAgent {
     } else {
       console.log('Matching hashes, no need to challenge');
       if (config.testMode) {
-        this.makeChallenge(hash);
+        if ((Buffer.from(hash.slice(2), 'hex')[7] % 3) === 2) {
+          this.makeChallenge(hash);
+        }
       }
     }
   }
@@ -108,7 +110,9 @@ class ChallengeAgent extends BaseAgent {
       } else {
         console.log(`Hashes match precalculated ${rounds.length}`);
         if (config.testMode) {
-          challenge.invalidHashes = rounds;
+          // challenge.invalidHashes = rounds;
+          const start = (Buffer.from(hash.slice(2), 'hex')[12]) % rounds.length;
+          challenge.invalidHashes = rounds.slice(start, start + 2);
         }
       }
     }
