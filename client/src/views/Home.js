@@ -120,8 +120,28 @@ class Home extends React.Component {
     try {
       const { submission } = await getSubmission(hash);
       const { events } = await getSubmissionEvents(submission.hash);
+      let status = events.reduce((st, event) => {
+        if (st < STATUS_CHALLENGE && event.name === 'NewChallenge') {
+          return STATUS_CHALLENGE;
+        } else if (st < STATUS_DATA && event.name === 'NewDataHashes') {
+          return STATUS_DATA;
+        } else if (st < STATUS_REQUEST && event.name === 'NewRequest') {
+          return STATUS_REQUEST;
+        } else if (st < STATUS_VERIFIED && event.name === 'RoundVerified') {
+          return STATUS_VERIFIED;
+        }
+        return st;
+      }, STATUS_NEW);
+      if (Date.now() - (new Date(parseInt(submission.timestamp, 10) * 1000)) >= 10 * 60 * 1000) {
+        if (status === STATUS_NEW || status === STATUS_DATA) {
+          status = STATUS_VERIFIED;
+        } else {
+          status = STATUS_INVALID;
+        }
+      }
       submission.events = events;
-      const newData = processSubmissions([submission, ...this.state.data.submissions]);
+      const newData = processSubmissions([{ ...submission, events, status },
+        ...this.state.data.submissions]);
       const data = Object.assign({}, this.state.data, newData);
       this.setState({ data });
     } catch (ex) {
