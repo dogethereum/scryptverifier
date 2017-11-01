@@ -60,19 +60,29 @@ class Home extends React.Component {
     });
     this.handleRowClick = this.handleRowClick.bind(this);
     this.handleModalClose = this.handleModalClose.bind(this);
+    this.refreshEvents = this.refreshEvents.bind(this);
   }
 
   componentDidMount() {
     this.loadData();
     this.notifications.subscribe();
+    this.timer = setInterval(this.refreshEvents, 10000);
   }
 
   componentWillUnmount() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
     this.notifications.unsubscribe();
   }
 
   loadEvents() {
     const { submissions } = this.state.data;
+    this.processEvents(submissions);
+  }
+
+  processEvents(submissions) {
     submissions.reduce(
       (curr, s) => curr.then(async () => {
         const { events } = await getSubmissionEvents(s.hash);
@@ -114,6 +124,15 @@ class Home extends React.Component {
       console.error(`${ex.stack}`);
       this.setState({ loading: false, error: true });
     }
+  }
+
+  refreshEvents() {
+    const { submissions } = this.state.data;
+    const now = Date.now();
+    const pending = submissions.filter(s => (now - s.timestamp > 10 * 60 * 1000)
+      && s.status !== STATUS_VERIFIED
+      && s.status !== STATUS_INVALID) || [];
+    this.processEvents(pending);
   }
 
   async updateData(hash) {
