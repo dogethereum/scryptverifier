@@ -7,8 +7,20 @@ class NotificationController extends EventEmitter {
     this.socket = io(`${config.host}:${config.port}`);
     this.socket.on('connect', () => {
       this.socket.emit('register');
-      this.socket.on('newSubmission', (hash) => {
-        this.emit('newSubmission', hash);
+      this.socket.on('newSubmission', (hash, input) => {
+        this.emit('newSubmission', hash, input);
+      });
+      this.socket.on('newChallenge', (hash, challengeId) => {
+        this.emit('newChallenge', hash, challengeId);
+      });
+      this.socket.on('newDataHashes', (hash, challengeId) => {
+        this.emit('newDataHashes', hash, challengeId);
+      });
+      this.socket.on('newRequest', (hash, challengeId, round) => {
+        this.emit('newRequest', hash, challengeId, round);
+      });
+      this.socket.on('roundVerified', (hash, challengeId, round) => {
+        this.emit('roundVerified', hash, challengeId, round);
       });
     });
     this.socket.on('disconnect', () => {

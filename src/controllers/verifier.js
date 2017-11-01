@@ -124,6 +124,22 @@ class VerifierController {
         const { hash, input } = result.args;
         notification.sendNotification('newSubmission', hash, input);
       });
+      registerEvent(verifier.NewChallenge(), (result) => {
+        const { hash, challengeId } = result.args;
+        notification.sendNotification('newChallenge', hash, challengeId);
+      });
+      registerEvent(verifier.NewDataHashes(), (result) => {
+        const { hash, challengeId } = result.args;
+        notification.sendNotification('newDataHashes', hash, challengeId);
+      });
+      registerEvent(verifier.NewRequest(), (result) => {
+        const { hash, challengeId, round } = result.args;
+        notification.sendNotification('newRequest', hash, challengeId, round);
+      });
+      registerEvent(verifier.RoundVerified(), (result) => {
+        const { hash, challengeId, round } = result.args;
+        notification.sendNotification('roundVerified', hash, challengeId, round);
+      });
     } catch (ex) {
       logger.error(`${ex.stack}`);
     }

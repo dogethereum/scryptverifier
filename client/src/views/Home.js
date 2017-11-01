@@ -39,6 +39,18 @@ class Home extends React.Component {
     this.notifications.on('newSubmission', (hash) => {
       this.updateData(hash);
     });
+    this.notifications.on('newChallenge', (hash) => {
+      this.updateData(hash);
+    });
+    this.notifications.on('newDataHashes', (hash) => {
+      this.updateData(hash);
+    });
+    this.notifications.on('newRequest', (hash) => {
+      this.updateData(hash);
+    });
+    this.notifications.on('roundVerified', (hash) => {
+      this.updateData(hash);
+    });
     this.handleRowClick = this.handleRowClick.bind(this);
     this.handleModalClose = this.handleModalClose.bind(this);
   }
