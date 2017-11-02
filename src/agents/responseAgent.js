@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const BaseAgent = require('./BaseAgent');
 const config = require('../../config');
 const scryptsy = require('../../scryptsy');
@@ -13,9 +14,26 @@ class ResponseAgent extends BaseAgent {
     this.responder = responder;
     this.challenges = {};
     this.submissions = {};
+    this.submitNew = this.submitNew.bind(this);
+  }
+
+  async submitNew() {
+    try {
+      const input = crypto.randomBytes(80);
+      const [hash] = await scryptsy(input);
+      console.log(`BlockHeader: ${input.toString('hex')}`);
+      console.log(`BlockHash: ${hash.toString('hex')}`);
+      if (hash[2] % 5 === 2) {
+        hash[14] = hash[14] ? 0 : 1;
+      }
+      await this.sendSubmission(`0x${hash.toString('hex')}`, `0x${input.toString('hex')}`, '0x0', { from: this.responder });
+    } catch (ex) {
+      console.log(`${ex.stack}`);
+    }
   }
 
   run() {
+    this.timer = setInterval(this.submitNew, 30 * 1000);
   }
 
   async processChallenge(hash, challengeId) {
@@ -105,7 +123,21 @@ class ResponseAgent extends BaseAgent {
     }
   }
 
-  onNewSubmission() {} // eslint-disable-line class-methods-use-this
+  async onNewSubmission(submissionData) { // eslint-disable-line class-methods-use-this
+    try {
+      const { hash, input } = submissionData.args;
+      console.log(`New submission hash: ${hash}, input: ${input}`);
+      const [result] = await scryptsy(Buffer.from(input.slice(2), 'hex'));
+      const resultHash = `0x${result.toString('hex')}`;
+      if (resultHash !== hash) {
+        console.log(`Hashes didn't match hash: ${hash}, result: ${resultHash}`);
+      } else {
+        console.log('Matching hashes, no need to challenge');
+      }
+    } catch (ex) {
+      console.log(`${ex.stack}`);
+    }
+  }
 
   onNewChallenge(challengeData) {
     const { hash, challengeId } = challengeData.args;
