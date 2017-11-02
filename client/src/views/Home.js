@@ -126,9 +126,10 @@ class Home extends React.Component {
     try {
       const { submissions } = this.state.data;
       const now = Date.now();
-      const pending = submissions.filter(s => (now - s.timestamp > 10 * 60 * 1000)
-        && s.status !== STATUS_VERIFIED
-        && s.status !== STATUS_INVALID) || [];
+      const pending = submissions.filter(s =>
+        (now - (new Date(parseInt(s.timestamp, 10) * 1000)) >= 10 * 60 * 1000)
+          && s.status !== STATUS_VERIFIED
+          && s.status !== STATUS_INVALID) || [];
       await this.processEvents(pending);
       setTimeout(this.refreshEvents, 60 * 1000);
     } catch (ex) {
