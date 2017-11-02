@@ -2,8 +2,10 @@ const Web3 = require('web3');
 const bip39 = require('bip39');
 const hdkey = require('ethereumjs-wallet/hdkey');
 const ProviderEngine = require('web3-provider-engine');
+const CacheSubprovider = require('web3-provider-engine/subproviders/cache.js');
 const FiltersSubprovider = require('web3-provider-engine/subproviders/filters.js');
 const WalletSubprovider = require('web3-provider-engine/subproviders/wallet.js');
+const NonceSubprovider = require('web3-provider-engine/subproviders/nonce-tracker.js');
 const Web3Subprovider = require('web3-provider-engine/subproviders/web3.js');
 const config = require('../../config');
 
@@ -18,11 +20,14 @@ function createWalletSubProvider({ seed }) {
 function createProvider({ wallet, rpcpath }) {
   const engine = new ProviderEngine();
 
+  engine.addProvider(new CacheSubprovider());
+  engine.addProvider(new FiltersSubprovider());
+  engine.addProvider(new NonceSubprovider());
+
   if (wallet) {
     engine.addProvider(createWalletSubProvider(wallet));
   }
 
-  engine.addProvider(new FiltersSubprovider());
   engine.addProvider(
     new Web3Subprovider(new Web3.providers.HttpProvider(rpcpath || config.rpcpath)));
 
