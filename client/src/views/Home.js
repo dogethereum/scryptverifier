@@ -66,7 +66,7 @@ class Home extends React.Component {
   componentDidMount() {
     this.loadData();
     this.notifications.subscribe();
-    this.timer = setInterval(this.refreshEvents, 10000);
+    this.timer = setInterval(this.refreshEvents, 60 * 1000);
   }
 
   componentWillUnmount() {
