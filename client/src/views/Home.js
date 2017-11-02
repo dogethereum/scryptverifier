@@ -42,6 +42,9 @@ class Home extends React.Component {
       selectedSubmission: undefined,
       data: {},
     };
+    this.handleRowClick = this.handleRowClick.bind(this);
+    this.handleModalClose = this.handleModalClose.bind(this);
+    this.refreshEvents = this.refreshEvents.bind(this);
     this.notifications = new Notifications();
     this.notifications.on('newSubmission', (hash) => {
       this.updateData(hash);
@@ -58,22 +61,15 @@ class Home extends React.Component {
     this.notifications.on('roundVerified', (hash) => {
       this.updateData(hash);
     });
-    this.handleRowClick = this.handleRowClick.bind(this);
-    this.handleModalClose = this.handleModalClose.bind(this);
-    this.refreshEvents = this.refreshEvents.bind(this);
   }
 
   componentDidMount() {
     this.loadData();
     this.notifications.subscribe();
-    this.timer = setInterval(this.refreshEvents, 60 * 1000);
+    setTimeout(this.refreshEvents, 60 * 1000);
   }
 
   componentWillUnmount() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
     this.notifications.unsubscribe();
   }
 
@@ -83,7 +79,7 @@ class Home extends React.Component {
   }
 
   processEvents(submissions) {
-    submissions.reduce(
+    return submissions.reduce(
       (curr, s) => curr.then(async () => {
         const { events } = await getSubmissionEvents(s.hash);
         let status = events.reduce((st, event) => {
@@ -126,19 +122,25 @@ class Home extends React.Component {
     }
   }
 
-  refreshEvents() {
-    const { submissions } = this.state.data;
-    const now = Date.now();
-    const pending = submissions.filter(s => (now - s.timestamp > 10 * 60 * 1000)
-      && s.status !== STATUS_VERIFIED
-      && s.status !== STATUS_INVALID) || [];
-    this.processEvents(pending);
+  async refreshEvents() {
+    try {
+      const { submissions } = this.state.data;
+      const now = Date.now();
+      const pending = submissions.filter(s => (now - s.timestamp > 10 * 60 * 1000)
+        && s.status !== STATUS_VERIFIED
+        && s.status !== STATUS_INVALID) || [];
+      await this.processEvents(pending);
+      setTimeout(this.refreshEvents, 60 * 1000);
+    } catch (ex) {
+      console.log(`${ex.stack}`);
+      setTimeout(this.refreshEvents, 60 * 1000);
+    }
   }
 
   async updateData(hash) {
     try {
       const { submission } = await getSubmission(hash);
-      const { events } = await getSubmissionEvents(submission.hash);
+      const { events = [] } = await getSubmissionEvents(submission.hash);
       let status = events.reduce((st, event) => {
         if (st < STATUS_CHALLENGE && event.name === 'NewChallenge') {
           return STATUS_CHALLENGE;
