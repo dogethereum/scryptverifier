@@ -3,8 +3,8 @@ pragma solidity ^0.4.15;
 contract ScryptVerifierData {
     struct RoundData {
         bytes32 hash;
-        uint[4] data;
-        uint8 kind;
+        uint[4] data;   // round input data
+        uint8 kind;     // type of round: 0: unused, 1: hash only, 2: data and hash
     }
 
     struct RequestData {
