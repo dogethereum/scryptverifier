@@ -1,8 +1,20 @@
 # ScryptVerifier
 
+## Organization
+
+*   client/  Frontend to disply contract submissions and status (react)
+*   contracts/ Contracts to implement Scrypt verification
+*   src/  Agents and backend for the frontend (expressjs)
+*   migrations/  For deployments of contracts from truffle
+*   pyscrypt/  Scrypt calculation with intermediate steps in python
+*   scryptsy/  Scrypt calculation with intermediate steps in javascript
+
+*   cpp/  Outdated source of scrypt calculation in C++
+
 ## Documentation
 
-[Description of the ScryptVerifier contracts](contracts/README.md)
+*   [Description of the ScryptVerifier contracts](contracts/README.md)
+*   [Agent's and backend](src/README.md)
 
 ## Setup
 
