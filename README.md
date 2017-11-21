@@ -1,5 +1,9 @@
 # ScryptVerifier
 
+## Documentation
+
+[Description of the ScryptVerifier contracts](contracts/README.md)
+
 ## Setup
 
 ### Global dependencies
