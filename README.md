@@ -1,5 +1,7 @@
 # ScryptVerifier
 
+## Legacy repository, don't use it unless you know what you are doing
+
 ## Organization
 
 *   client/  Frontend to disply contract submissions and status (react)
